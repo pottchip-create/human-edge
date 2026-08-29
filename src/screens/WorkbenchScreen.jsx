@@ -80,62 +80,86 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
   }
 
   return (
-    <div className="page fade-in" style={{ paddingBottom: showPopup ? '340px' : '40px' }}>
-      <div style={{ marginBottom: '24px' }}>
+    <div style={{
+      height: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      background: 'var(--bg)'
+    }}>
+      {/* 헤더 */}
+      <div style={{ padding: '20px 40px 12px', flexShrink: 0 }}>
         <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--accent)', letterSpacing: '0.1em' }}>STEP 4</span>
-        <h2 style={{ marginTop: '8px', marginBottom: '4px' }}>운영안 조율</h2>
-        <p>발견한 내용을 AI에게 전달해 운영안을 다듬어보세요.</p>
+        <h2 style={{ marginTop: '4px', marginBottom: '0' }}>운영안 조율</h2>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '24px' }}>
+      {/* 본문 — 고정 높이 2열 */}
+      <div style={{
+        flex: 1,
+        display: 'grid',
+        gridTemplateColumns: '1fr 1.5fr',
+        gap: '20px',
+        padding: '0 40px 20px',
+        minHeight: 0
+      }}>
 
         {/* 좌측: 현재 운영안 */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="card" style={{ padding: '20px' }}>
-            <h3 style={{ marginBottom: '12px', fontSize: '1rem' }}>📅 현재 운영안</h3>
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: '600' }}>1일차</div>
-              {(currentPlan.day1 || []).map((item, i) => (
-                <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '6px', fontSize: '0.85rem' }}>
-                  <span style={{ color: 'var(--accent)', fontWeight: '600', minWidth: '40px' }}>{item.time}</span>
-                  <span>{item.activity}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginBottom: '12px' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: '600' }}>2일차</div>
-              {(currentPlan.day2 || []).map((item, i) => (
-                <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '6px', fontSize: '0.85rem' }}>
-                  <span style={{ color: 'var(--accent)', fontWeight: '600', minWidth: '40px' }}>{item.time}</span>
-                  <span>{item.activity}</span>
-                </div>
-              ))}
-            </div>
-            <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: '600' }}>숙박</div>
-              {(currentPlan.rooms || []).map((r, i) => (
-                <div key={i} style={{ fontSize: '0.85rem', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: '600' }}>방 {r.room}</span>: {(r.members || []).join(', ')}
-                </div>
-              ))}
-            </div>
-            {currentPlan.program_notes && (
-              <div style={{ marginTop: '12px', padding: '10px', background: 'var(--blue-soft)', borderRadius: '8px', fontSize: '0.85rem' }}>
-                📝 {currentPlan.program_notes}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minHeight: 0 }}>
+
+          {/* 운영안 카드 — 스크롤 */}
+          <div className="card" style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '18px',
+            minHeight: 0
+          }}>
+            <h3 style={{ marginBottom: '12px', fontSize: '0.95rem', flexShrink: 0 }}>📅 현재 운영안</h3>
+            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '5px', fontWeight: '700' }}>1일차</div>
+                {(currentPlan.day1 || []).map((item, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '5px', fontSize: '0.83rem' }}>
+                    <span style={{ color: 'var(--accent)', fontWeight: '600', minWidth: '38px', flexShrink: 0 }}>{item.time}</span>
+                    <span>{item.activity}</span>
+                  </div>
+                ))}
               </div>
-            )}
-            {(currentPlan.unconfirmed || []).length > 0 && (
-              <div style={{ marginTop: '12px', padding: '10px', background: 'var(--yellow-soft)', borderRadius: '8px', fontSize: '0.85rem', color: '#92400E' }}>
-                ⏳ 미확정: {currentPlan.unconfirmed.join(', ')}
+              <div style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '5px', fontWeight: '700' }}>2일차</div>
+                {(currentPlan.day2 || []).map((item, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '5px', fontSize: '0.83rem' }}>
+                    <span style={{ color: 'var(--accent)', fontWeight: '600', minWidth: '38px', flexShrink: 0 }}>{item.time}</span>
+                    <span>{item.activity}</span>
+                  </div>
+                ))}
               </div>
-            )}
+              <div style={{ marginBottom: '6px' }}>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '5px', fontWeight: '700' }}>숙박</div>
+                {(currentPlan.rooms || []).map((r, i) => (
+                  <div key={i} style={{ fontSize: '0.83rem', marginBottom: '3px' }}>
+                    <span style={{ fontWeight: '600' }}>방 {r.room}</span>: {(r.members || []).join(', ')}
+                  </div>
+                ))}
+              </div>
+              {currentPlan.program_notes && (
+                <div style={{ padding: '8px 10px', background: 'var(--blue-soft)', borderRadius: '8px', fontSize: '0.82rem', marginTop: '8px' }}>
+                  📝 {currentPlan.program_notes}
+                </div>
+              )}
+              {(currentPlan.unconfirmed || []).length > 0 && (
+                <div style={{ padding: '8px 10px', background: 'var(--yellow-soft)', borderRadius: '8px', fontSize: '0.82rem', color: '#92400E', marginTop: '8px' }}>
+                  ⏳ 미확정: {currentPlan.unconfirmed.join(', ')}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="card" style={{ background: 'var(--accent-soft)', border: '1px solid #F45A2A30', padding: '16px' }}>
-            <div style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '6px' }}>⚠️ 고정 조건</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              총예산 {FIXED_CONSTRAINTS.totalBudget}만원<br />
-              도자기 클래스 취소 시 24만원 청구
+          {/* 고정 조건 */}
+          <div className="card" style={{ background: 'var(--accent-soft)', border: '1px solid #F45A2A30', padding: '12px 14px', flexShrink: 0 }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: '600', marginBottom: '4px' }}>⚠️ 고정 조건</div>
+            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              총예산 {FIXED_CONSTRAINTS.totalBudget}만원 · 도자기 클래스 취소 시 24만원 청구
             </div>
           </div>
 
@@ -145,9 +169,9 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
               style={{
                 background: 'white', color: '#374151',
                 border: '1.5px solid #E5E7EB', borderRadius: '12px',
-                padding: '10px 16px', fontSize: '0.85rem',
+                padding: '10px 14px', fontSize: '0.83rem',
                 fontWeight: '600', fontFamily: 'inherit', cursor: 'pointer',
-                textAlign: 'left'
+                textAlign: 'left', flexShrink: 0
               }}
             >
               💬 미반영 인물 다시 확인하기
@@ -156,22 +180,37 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
         </div>
 
         {/* 우측: 채팅 */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '20px' }}>
-          <h3 style={{ marginBottom: '16px', fontSize: '1rem' }}>🤖 AI와 조율하기</h3>
+        <div className="card" style={{
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '18px',
+          minHeight: 0
+        }}>
+          <h3 style={{ marginBottom: '10px', fontSize: '0.95rem', flexShrink: 0 }}>🤖 AI와 조율하기</h3>
 
           {showPopup && (
             <div style={{
               background: 'var(--yellow-soft)', border: '1px solid #FFE0A0',
-              borderRadius: '10px', padding: '10px 14px',
-              fontSize: '0.85rem', color: '#92400E', marginBottom: '12px'
+              borderRadius: '10px', padding: '9px 12px',
+              fontSize: '0.83rem', color: '#92400E',
+              marginBottom: '10px', flexShrink: 0
             }}>
               💬 먼저 아래 인물과 대화를 마친 후 입력해주세요.
             </div>
           )}
 
-          <div style={{ flex: 1, overflowY: 'auto', height: '360px', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+          {/* 메시지 목록 — 스크롤 */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            marginBottom: '12px',
+            minHeight: 0
+          }}>
             {messages.length === 0 && (
-              <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '60px' }}>
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '40px' }}>
                 팀원들과 나눈 내용을 알려주세요.<br />한 사람씩 이야기해도 좋아요.
               </div>
             )}
@@ -180,53 +219,56 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
                 alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
                 background: m.role === 'user' ? 'var(--accent)' : 'var(--bg)',
                 color: m.role === 'user' ? 'white' : 'var(--text-primary)',
-                padding: '10px 14px', borderRadius: '16px',
-                maxWidth: '85%', fontSize: '0.9rem', lineHeight: '1.6',
+                padding: '9px 13px',
+                borderRadius: m.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
+                maxWidth: '85%', fontSize: '0.88rem', lineHeight: '1.6',
                 whiteSpace: 'pre-wrap'
               }}>
                 <span dangerouslySetInnerHTML={{ __html: m.display.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
               </div>
             ))}
             {loading && (
-              <div style={{ alignSelf: 'flex-start', background: 'var(--bg)', padding: '10px 14px', borderRadius: '16px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              <div style={{ alignSelf: 'flex-start', background: 'var(--bg)', padding: '9px 13px', borderRadius: '4px 14px 14px 14px', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
                 검토 중...
               </div>
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-            <input
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !showPopup && sendMessage()}
-              placeholder={showPopup ? '아래 인물과 대화 후 입력해주세요' : '팀원의 상황을 입력하세요...'}
-              disabled={showPopup}
-              style={{
-                flex: 1, padding: '10px 14px', borderRadius: '100px',
-                border: '1.5px solid var(--line)', fontSize: '0.9rem',
-                fontFamily: 'inherit', outline: 'none',
-                opacity: showPopup ? 0.5 : 1,
-                background: showPopup ? '#F9FAFB' : 'white'
-              }}
-            />
+          {/* 입력 영역 */}
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+              <input
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !showPopup && sendMessage()}
+                placeholder={showPopup ? '아래 인물과 대화 후 입력해주세요' : '팀원의 상황을 입력하세요...'}
+                disabled={showPopup}
+                style={{
+                  flex: 1, padding: '10px 14px', borderRadius: '100px',
+                  border: '1.5px solid var(--line)', fontSize: '0.88rem',
+                  fontFamily: 'inherit', outline: 'none',
+                  opacity: showPopup ? 0.5 : 1,
+                  background: showPopup ? '#F9FAFB' : 'white'
+                }}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={loading || !input.trim() || showPopup}
+                className="btn-primary"
+                style={{ padding: '10px 18px', fontSize: '0.88rem', opacity: showPopup ? 0.5 : 1 }}
+              >
+                전송
+              </button>
+            </div>
             <button
-              onClick={sendMessage}
-              disabled={loading || !input.trim() || showPopup}
-              className="btn-primary"
-              style={{ padding: '10px 20px', fontSize: '0.9rem', opacity: showPopup ? 0.5 : 1 }}
+              onClick={handleEvaluate}
+              disabled={evaluating || loading || showPopup}
+              className="btn-secondary"
+              style={{ width: '100%', padding: '11px', opacity: showPopup ? 0.5 : 1 }}
             >
-              전송
+              {evaluating ? '검토 중...' : '📋 운영안 검토 요청'}
             </button>
           </div>
-
-          <button
-            onClick={handleEvaluate}
-            disabled={evaluating || loading || showPopup}
-            className="btn-secondary"
-            style={{ width: '100%', padding: '12px', opacity: showPopup ? 0.5 : 1 }}
-          >
-            {evaluating ? '검토 중...' : '📋 운영안 검토 요청'}
-          </button>
         </div>
       </div>
 
