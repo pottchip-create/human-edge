@@ -6,7 +6,6 @@ export function evaluatePlan(currentPlan) {
     C4: evaluateC4(currentPlan),
   }
   const allPass = Object.values(results).every(r => r.status === 'PASS')
-  // P1-7: PARTIAL도 미반영으로 포함
   const unreflected = Object.entries(results)
     .filter(([, r]) => r.status === 'FAIL' || r.status === 'UNKNOWN' || r.status === 'PARTIAL')
     .map(([key]) => key)
@@ -21,9 +20,13 @@ export function evaluatePlan(currentPlan) {
 function evaluateC1(plan) {
   const groups = plan.transport_groups
   if (groups) {
-    const kimGroup = groups.find(g => g.members?.some(m => m.includes('김민준')))
+    const kimGroup = groups.find(g => {
+      const members = g.members || g.participants || []
+      return members.some(m => m.includes('김민준'))
+    })
     if (kimGroup) {
-      const dep = kimGroup.departure
+      // members/departure 또는 participants/depart_time 둘 다 지원
+      const dep = kimGroup.departure || kimGroup.depart_time
       if (dep && dep >= '16:30') return { status: 'PASS', reason: `김민준 대리 출발 ${dep} — 조건 충족` }
       if (dep && dep < '16:30') return { status: 'FAIL', reason: `김민준 대리 출발 ${dep} — 16:30 이전` }
       return { status: 'PARTIAL', reason: '후합류 언급 있으나 시간 불명확' }
@@ -46,9 +49,8 @@ function evaluateC1(plan) {
 }
 
 // ── C2: 이수진 90분 연속 이동 없음 ────────────────────────
-// P1-5: 15분 이상 숫자를 파싱해야 PASS. 단순 '휴식' 키워드는 PARTIAL
+// ⚠️ parseRestMinutes는 transport 문자열을 제외하고 휴식 관련 텍스트에서만 파싱
 function parseRestMinutes(text) {
-  // "15분", "20 분", "30분간" 등에서 숫자 추출
   const m = text.match(/(\d+)\s*분/)
   return m ? parseInt(m[1], 10) : null
 }
@@ -58,29 +60,32 @@ function evaluateC2(plan) {
   const transport = plan.transport || ''
   const day1 = plan.day1 || []
 
-  // ITX / 기차 → 연속 90분 미만으로 간주 → PASS
+  // ITX / 기차 → 90분 미만 → PASS
   if (transport.includes('ITX') || transport.includes('기차') ||
       transport.includes('60분') || transport.includes('70분') || transport.includes('80분')) {
     return { status: 'PASS', reason: '90분 미만 이동 수단 반영됨' }
   }
 
-  // 휴식 관련 텍스트 수집
-  const restTexts = [
-    notes,
-    transport,
-    ...day1.filter(e => e.activity?.includes('휴식') || e.activity?.includes('휴게소') || e.activity?.includes('정차'))
-         .map(e => e.activity)
-  ].join(' ')
+  // day1에서 휴식 항목만 추출 (transport 제외 — 90분 오인 방지)
+  const restActivities = day1
+    .filter(e => e.activity?.includes('휴식') || e.activity?.includes('휴게소') || e.activity?.includes('정차'))
+    .map(e => e.activity)
 
-  const hasRestKeyword = /휴식|정차|휴게소/.test(restTexts)
+  // program_notes에서 휴식 관련 문장만 추출
+  const restNotes = notes.split(/[.。\n]/)
+    .filter(s => /휴식|정차|휴게소/.test(s))
+    .join(' ')
+
+  const restText = [...restActivities, restNotes].join(' ').trim()
+  const hasRestKeyword = restText.length > 0
 
   if (hasRestKeyword) {
-    const mins = parseRestMinutes(restTexts)
+    const mins = parseRestMinutes(restText)
     if (mins !== null) {
       if (mins >= 15) return { status: 'PASS', reason: `중간 ${mins}분 휴식 반영됨 — 조건 충족` }
       return { status: 'PARTIAL', reason: `중간 ${mins}분 휴식 — 15분 미만으로 조건 미충족` }
     }
-    // 숫자 없는 '잠깐 휴식' 등
+    // 시간 명시 없는 휴식 → PARTIAL
     return { status: 'PARTIAL', reason: '휴식 언급 있으나 시간 불명확 (15분 이상 필요)' }
   }
 
@@ -92,24 +97,28 @@ function evaluateC2(plan) {
 }
 
 // ── C3: 박준혁 물레 필수 참여 강제 없음 ────────────────────
-// P1-6: 부정문·막연한 '예정'은 제외, 팀 전체 도자기 미사용은 PASS
-const POSITIVE_ADJUSTMENT = /관찰|방식\s*조정|별도\s*참여|선택\s*참여|제외\s*허용|참여\s*방식/
+const POSITIVE_ADJUSTMENT = /관찰|방식\s*조정|별도\s*참여|선택\s*참여|제외\s*허용|참여\s*방식|손목\s*부담\s*없|비손목|비\s*부담/
 const NEGATION = /하지\s*않음|안\s*함|미조정|조정\s*없음|불가|못\s*함/
+const WHOLE_TEAM_SKIP = /전체\s*미사용|팀\s*전체.*포기|도자기.*미사용|물레.*미사용|포기.*도자기|포기.*물레/
 
 function evaluateC3(plan) {
   const notes = plan.program_notes || ''
   const day1 = plan.day1 || []
 
-  // 도자기 일정 자체가 없으면 → 팀 전체가 미사용(P3) → 박준혁도 강제 참여 없으므로 PASS
   const pottery = day1.find(e => e.activity?.includes('도자기') || e.activity?.includes('물레'))
+
   if (!pottery) {
-    // program_notes에 명시적으로 '미사용' 또는 '포기' 언급이 있거나 일정 자체 없음
-    return { status: 'PASS', reason: '도자기 프로그램 미포함 — 박준혁 강제 참여 없음' }
+    // 도자기 일정 없음 — 의도적 전체 포기인지 단순 누락인지 구분
+    if (WHOLE_TEAM_SKIP.test(notes)) {
+      return { status: 'PASS', reason: '팀 전체 도자기 프로그램 포기 명시 — 박준혁 강제 참여 없음' }
+    }
+    // 명시 없으면 누락인지 포기인지 불명 → UNKNOWN
+    return { status: 'UNKNOWN', reason: '도자기 일정 정보 없음 — 전체 미사용 여부 불명확' }
   }
 
   const combinedText = pottery.activity + ' ' + notes
 
-  // 부정문이 있으면 FAIL 또는 UNKNOWN
+  // 부정문 → UNKNOWN (단, 전원 필수는 FAIL)
   if (NEGATION.test(combinedText)) {
     if (combinedText.includes('전원') && combinedText.includes('필수')) {
       return { status: 'FAIL', reason: '전원 필수 참여 유지됨' }
@@ -117,22 +126,22 @@ function evaluateC3(plan) {
     return { status: 'UNKNOWN', reason: '부정적 표현 감지 — 조정 여부 불명확' }
   }
 
-  // 명확한 긍정 조정 표현
+  // 긍정 조정 표현
   if (POSITIVE_ADJUSTMENT.test(combinedText)) {
     return { status: 'PASS', reason: '참여 방식 조정 반영됨' }
   }
 
-  // '예정'만 있는 경우 → PARTIAL
+  // '예정'·'논의' → PARTIAL
   if (combinedText.includes('예정') || combinedText.includes('논의')) {
     return { status: 'PARTIAL', reason: '조정 예정 언급 — 구체적 방식 불명확' }
   }
 
-  // 박준혁 언급만 있고 조정 내용 불명확
+  // 박준혁 언급만
   if (notes.includes('박준혁')) {
     return { status: 'PARTIAL', reason: '박준혁 언급 있으나 조정 방식 불명확' }
   }
 
-  // 전원 필수 참여
+  // 전원 필수
   if (combinedText.includes('전원') && combinedText.includes('필수')) {
     return { status: 'FAIL', reason: '전원 필수 참여 유지됨' }
   }
@@ -140,7 +149,7 @@ function evaluateC3(plan) {
   return { status: 'UNKNOWN', reason: '프로그램 조정 여부 판단 불가' }
 }
 
-// ── C4: 최지원 ≠ 이수진 (같은 방 금지) ────────────────────
+// ── C4: 최지원 ≠ 이수진 ──────────────────────────────────
 function evaluateC4(plan) {
   const rooms = plan.rooms || []
   for (const room of rooms) {

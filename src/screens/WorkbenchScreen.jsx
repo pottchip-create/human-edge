@@ -55,7 +55,7 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
       const reply = data.assistant_message || '처리했습니다.'
       setMessages(prev => [...prev, { role: 'assistant', content: reply, display: reply }])
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: '오류가 발생했습니다.', display: '오류가 발생했습니다.' }])
+      setMessages(prev => [...prev, { role: 'assistant', content: '오류가 발생했습니다. 로컬 개발 시에는 vercel dev로 실행하거나 배포된 URL에서 테스트해주세요.', display: '오류가 발생했습니다. 로컬 개발 시에는 vercel dev로 실행하거나 배포된 URL에서 테스트해주세요.' }])
     } finally {
       setLoading(false)
     }

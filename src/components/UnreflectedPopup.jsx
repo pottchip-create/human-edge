@@ -65,13 +65,25 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
           boxShadow: '0 -8px 32px rgba(0,0,0,0.12)'
         }}>
 
-          {/* 인물 이미지 */}
-          <div style={{ width: '110px', flexShrink: 0, alignSelf: 'flex-end' }}>
-            <img
-              src={character.unreflectedImage}
-              alt={character.name}
-              style={{ width: '100%', objectFit: 'contain', display: 'block' }}
-            />
+          {/* 인물 이미지 영역 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+            {/* 상황 사진 (작게) */}
+            <div style={{ width: '100px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid var(--line)' }}>
+              <img
+                src={character.situationImage}
+                alt={`${character.name} 상황`}
+                style={{ width: '100%', display: 'block', objectFit: 'cover', height: '70px' }}
+                onError={e => { e.target.style.display = 'none' }}
+              />
+            </div>
+            {/* 미반영 표정 이미지 */}
+            <div style={{ width: '100px', alignSelf: 'flex-end' }}>
+              <img
+                src={character.unreflectedImage}
+                alt={character.name}
+                style={{ width: '100%', objectFit: 'contain', display: 'block' }}
+              />
+            </div>
           </div>
 
           {/* 말풍선 + 버튼 */}

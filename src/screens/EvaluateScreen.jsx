@@ -46,7 +46,7 @@ export default function EvaluateScreen({ currentPlan, conditionResults, onHumanE
           disabled={loading}
           style={{ fontSize: '1rem', padding: '14px 36px' }}
         >
-          {loading ? '분석 중...' : '최종 결재 →'}
+          {loading ? '분석 중...' : '판단 피드백 보기 →'}
         </button>
       </div>
     </div>

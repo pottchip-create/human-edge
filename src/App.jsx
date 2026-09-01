@@ -3,6 +3,7 @@ import { INITIAL_PLAN } from './data/constraints'
 import IntroScreen from './screens/IntroScreen'
 import TeamScreen from './screens/TeamScreen'
 import InitialPlanScreen from './screens/InitialPlanScreen'
+import PromptScreen from './screens/PromptScreen'
 import QRScreen from './screens/QRScreen'
 import CharacterScreen from './screens/CharacterScreen'
 import WorkbenchScreen from './screens/WorkbenchScreen'
@@ -35,7 +36,10 @@ export default function App() {
         <IntroScreen onNext={() => goTo('team')} />
       )}
       {screen === 'team' && (
-        <TeamScreen onNext={() => goTo('initialPlan')} />
+        <TeamScreen onNext={() => goTo('prompt')} />
+      )}
+      {screen === 'prompt' && (
+        <PromptScreen onNext={() => goTo('initialPlan')} />
       )}
       {screen === 'initialPlan' && (
         <InitialPlanScreen onNext={() => goTo('qr')} />
