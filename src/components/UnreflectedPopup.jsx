@@ -26,6 +26,7 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
   const turns = turnsMap[currentKey] || 0
 
   const setInput = (v) => setInputMap(m => ({ ...m, [currentKey]: v }))
+
   const openChat = () => setChatOpenMap(m => ({ ...m, [currentKey]: true }))
 
   // 메시지/로딩 변경 시 자동 스크롤
@@ -53,6 +54,13 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
     }
   }
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
+
   return (
     <div style={{
       position: 'fixed', bottom: 0, left: 0, right: 0,
@@ -61,19 +69,14 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
     }}>
       <div style={{ width: '100%', maxWidth: '960px', padding: '0 16px', pointerEvents: 'auto' }}>
 
-        {/* 인물 카드 */}
-        <div style={{
-          background: 'rgba(255,255,255,0.96)',
-          backdropFilter: 'blur(12px)',
-          border: `2px solid ${character.color}30`,
-          borderBottom: chatOpen ? 'none' : undefined,
-          borderRadius: '20px 20px 0 0',
-          overflow: 'hidden',
-          boxShadow: '0 -8px 32px rgba(0,0,0,0.12)'
-        }}>
-
-          {/* 상황 사진 — 상단 가로 꽉 차게 */}
-          <div style={{ width: '100%', height: '160px', overflow: 'hidden' }}>
+        {/* 상황 사진 — 대화 시작 후에만, 상단 가로 꽉 차게 크게 */}
+        {chatOpen && (
+          <div style={{
+            width: '100%', height: '260px', overflow: 'hidden',
+            borderRadius: '20px 20px 0 0',
+            border: `2px solid ${character.color}30`,
+            borderBottom: 'none'
+          }}>
             <img
               src={character.situationImage}
               alt={`${character.name} 상황`}
@@ -81,106 +84,115 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
               onError={e => { e.target.parentElement.style.display = 'none' }}
             />
           </div>
+        )}
 
-          {/* 하단 영역: 미반영 이미지 + 말풍선 + 버튼 */}
-          <div style={{
-            padding: '16px 24px 20px',
-            display: 'flex', alignItems: 'flex-end', gap: '16px'
-          }}>
+        {/* 인물 카드 */}
+        <div style={{
+          background: 'rgba(255,255,255,0.96)',
+          backdropFilter: 'blur(12px)',
+          border: `2px solid ${character.color}30`,
+          borderTop: chatOpen ? 'none' : undefined,
+          borderBottom: chatOpen ? 'none' : undefined,
+          borderRadius: chatOpen ? '0' : '20px 20px 0 0',
+          padding: '16px 24px 20px',
+          display: 'flex', alignItems: 'flex-end', gap: '16px',
+          boxShadow: chatOpen ? 'none' : '0 -8px 32px rgba(0,0,0,0.12)'
+        }}>
 
-            {/* 미반영 표정 이미지 */}
-            <div style={{ width: '80px', flexShrink: 0 }}>
-              <img
-                src={character.unreflectedImage}
-                alt={character.name}
-                style={{ width: '100%', objectFit: 'contain', display: 'block' }}
-              />
+          {/* 미반영 표정 이미지 */}
+          <div style={{ width: '80px', flexShrink: 0 }}>
+            <img
+              src={character.unreflectedImage}
+              alt={character.name}
+              style={{ width: '100%', objectFit: 'contain', display: 'block' }}
+            />
+          </div>
+
+          {/* 말풍선 + 버튼 */}
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: character.color }}>
+                {character.name} {character.title}
+              </span>
+              {unreflectedKeys.length > 1 && (
+                <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
+                  {currentIdx + 1} / {unreflectedKeys.length}
+                </span>
+              )}
             </div>
 
-            {/* 말풍선 + 버튼 */}
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: character.color }}>
-                  {character.name} {character.title}
-                </span>
-                {unreflectedKeys.length > 1 && (
-                  <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
-                    {currentIdx + 1} / {unreflectedKeys.length}
-                  </span>
-                )}
-              </div>
+            {/* 말풍선 */}
+            <div style={{
+              background: character.bgColor,
+              border: `1.5px solid ${character.color}40`,
+              borderRadius: '4px 16px 16px 16px',
+              padding: '12px 16px', fontSize: '0.93rem',
+              lineHeight: '1.65', color: '#222', marginBottom: '14px'
+            }}>
+              {character.unreflectedMsg}
+            </div>
 
-              {/* 말풍선 */}
-              <div style={{
-                background: character.bgColor,
-                border: `1.5px solid ${character.color}40`,
-                borderRadius: '4px 16px 16px 16px',
-                padding: '12px 16px', fontSize: '0.93rem',
-                lineHeight: '1.65', color: '#222', marginBottom: '14px'
-              }}>
-                {character.unreflectedMsg}
-              </div>
-
-              {/* 버튼 */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                {unreflectedKeys.length > 1 && (
-                  <>
-                    <button
-                      onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
-                      disabled={currentIdx === 0}
-                      style={{
-                        background: 'white', color: '#6B7280',
-                        border: '1.5px solid #E5E7EB', borderRadius: '100px',
-                        padding: '8px 14px', fontSize: '0.85rem',
-                        fontFamily: 'inherit', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer',
-                        opacity: currentIdx === 0 ? 0.4 : 1
-                      }}
-                    >← 이전</button>
-                    <button
-                      onClick={() => setCurrentIdx(i => Math.min(unreflectedKeys.length - 1, i + 1))}
-                      disabled={currentIdx === unreflectedKeys.length - 1}
-                      style={{
-                        background: 'white', color: '#6B7280',
-                        border: '1.5px solid #E5E7EB', borderRadius: '100px',
-                        padding: '8px 14px', fontSize: '0.85rem',
-                        fontFamily: 'inherit',
-                        cursor: currentIdx === unreflectedKeys.length - 1 ? 'not-allowed' : 'pointer',
-                        opacity: currentIdx === unreflectedKeys.length - 1 ? 0.4 : 1
-                      }}
-                    >다음 →</button>
-                  </>
-                )}
-                {!chatOpen && (
-                  <button onClick={openChat} style={{
-                    background: character.color, color: 'white',
-                    border: 'none', borderRadius: '100px',
-                    padding: '8px 18px', fontSize: '0.85rem',
-                    fontWeight: '600', fontFamily: 'inherit', cursor: 'pointer'
-                  }}>
-                    이 사람과 대화해보기
-                  </button>
-                )}
-                <button onClick={onClose} style={{
-                  background: 'white', color: '#374151',
-                  border: '1.5px solid #E5E7EB', borderRadius: '100px',
+            {/* 버튼 */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {unreflectedKeys.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
+                    disabled={currentIdx === 0}
+                    style={{
+                      background: 'white', color: '#6B7280',
+                      border: '1.5px solid #E5E7EB', borderRadius: '100px',
+                      padding: '8px 14px', fontSize: '0.85rem',
+                      fontFamily: 'inherit', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer',
+                      opacity: currentIdx === 0 ? 0.4 : 1
+                    }}
+                  >← 이전</button>
+                  <button
+                    onClick={() => setCurrentIdx(i => Math.min(unreflectedKeys.length - 1, i + 1))}
+                    disabled={currentIdx === unreflectedKeys.length - 1}
+                    style={{
+                      background: 'white', color: '#6B7280',
+                      border: '1.5px solid #E5E7EB', borderRadius: '100px',
+                      padding: '8px 14px', fontSize: '0.85rem',
+                      fontFamily: 'inherit',
+                      cursor: currentIdx === unreflectedKeys.length - 1 ? 'not-allowed' : 'pointer',
+                      opacity: currentIdx === unreflectedKeys.length - 1 ? 0.4 : 1
+                    }}
+                  >다음 →</button>
+                </>
+              )}
+              {!chatOpen && (
+                <button onClick={openChat} style={{
+                  background: character.color, color: 'white',
+                  border: 'none', borderRadius: '100px',
                   padding: '8px 18px', fontSize: '0.85rem',
                   fontWeight: '600', fontFamily: 'inherit', cursor: 'pointer'
                 }}>
-                  운영안으로 돌아가기
+                  이 사람과 대화해보기
                 </button>
-              </div>
+              )}
+              <button onClick={onClose} style={{
+                background: 'white', color: '#374151',
+                border: '1.5px solid #E5E7EB', borderRadius: '100px',
+                padding: '8px 18px', fontSize: '0.85rem',
+                fontWeight: '600', fontFamily: 'inherit', cursor: 'pointer'
+              }}>
+                운영안으로 돌아가기
+              </button>
             </div>
           </div>
         </div>
 
-        {/* 챗봇 */}
+        {/* 챗봇 영역 */}
         {chatOpen && (
           <div style={{
             background: 'rgba(255,255,255,0.98)',
-            borderLeft: `2px solid ${character.color}30`,
-            borderRight: `2px solid ${character.color}30`,
-            padding: '0 24px 16px', pointerEvents: 'auto'
+            border: `2px solid ${character.color}30`,
+            borderTop: 'none',
+            padding: '0 24px 16px',
+            boxShadow: '0 -8px 32px rgba(0,0,0,0.12)'
           }}>
+            {/* 메시지 목록 — 스크롤, 하단 고정 */}
             <div style={{
               height: '200px', overflowY: 'auto',
               display: 'flex', flexDirection: 'column',
@@ -198,7 +210,8 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
                   color: m.role === 'user' ? 'white' : '#111318',
                   padding: '8px 12px',
                   borderRadius: m.role === 'user' ? '12px 4px 12px 12px' : '4px 12px 12px 12px',
-                  maxWidth: '80%', fontSize: '0.88rem', lineHeight: '1.55'
+                  maxWidth: '80%', fontSize: '0.88rem', lineHeight: '1.55',
+                  whiteSpace: 'pre-wrap'
                 }}>
                   <SafeBold text={m.content} />
                 </div>
@@ -211,17 +224,22 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
               {/* 자동 스크롤 앵커 */}
               <div ref={chatBottomRef} />
             </div>
+
+            {/* 입력 */}
             {turns < MAX_TURNS ? (
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                <textarea
                   value={input}
                   onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                  placeholder="질문을 입력하세요..."
+                  onKeyDown={handleKeyDown}
+                  placeholder="질문을 입력하세요… (Shift+Enter 줄바꿈)"
+                  rows={1}
                   style={{
-                    flex: 1, padding: '9px 14px', borderRadius: '100px',
+                    flex: 1, padding: '9px 14px', borderRadius: '16px',
                     border: '1.5px solid #E5E7EB', fontSize: '0.88rem',
-                    fontFamily: 'inherit', outline: 'none'
+                    fontFamily: 'inherit', outline: 'none',
+                    resize: 'none', lineHeight: '1.5',
+                    maxHeight: '80px', overflowY: 'auto'
                   }}
                 />
                 <button
@@ -231,7 +249,8 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
                     background: character.color, color: 'white',
                     border: 'none', borderRadius: '100px', padding: '9px 18px',
                     fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit',
-                    opacity: loading || !input.trim() ? 0.5 : 1, fontSize: '0.88rem'
+                    opacity: loading || !input.trim() ? 0.5 : 1, fontSize: '0.88rem',
+                    flexShrink: 0
                   }}
                 >전송</button>
               </div>

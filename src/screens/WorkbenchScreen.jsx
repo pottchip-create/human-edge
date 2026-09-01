@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { FIXED_CONSTRAINTS } from '../data/constraints'
 import { askPlan } from '../api'
 import { evaluatePlan } from '../evaluate'
@@ -40,6 +40,20 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
   const [unreflectedKeys, setUnreflectedKeys] = useState([])
   const [showPopup, setShowPopup] = useState(false)
   const [popupShown, setPopupShown] = useState(false)
+  const chatBottomRef = useRef(null)
+
+  useEffect(() => {
+    if (chatBottomRef.current) {
+      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages, loading])
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
 
   const sendMessage = async () => {
     if (!input.trim() || loading || showPopup) return
@@ -234,21 +248,24 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
                 검토 중...
               </div>
             )}
+            <div ref={chatBottomRef} />
           </div>
 
           {/* 입력 영역 */}
           <div style={{ flexShrink: 0 }}>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-              <input
+              <textarea
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !showPopup && sendMessage()}
-                placeholder={showPopup ? '아래 인물과 대화 후 입력해주세요' : '팀원의 상황을 입력하세요...'}
+                onKeyDown={handleKeyDown}
+                placeholder={showPopup ? '아래 인물과 대화 후 입력해주세요' : '팀원의 상황을 입력하세요… (Shift+Enter 줄바꿈)'}
                 disabled={showPopup}
+                rows={1}
                 style={{
-                  flex: 1, padding: '10px 14px', borderRadius: '100px',
+                  flex: 1, padding: '10px 14px', borderRadius: '16px',
                   border: '1.5px solid var(--line)', fontSize: '0.88rem',
-                  fontFamily: 'inherit', outline: 'none',
+                  fontFamily: 'inherit', outline: 'none', resize: 'none',
+                  lineHeight: '1.5', maxHeight: '120px', overflowY: 'auto',
                   opacity: showPopup ? 0.5 : 1,
                   background: showPopup ? '#F9FAFB' : 'white'
                 }}
