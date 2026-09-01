@@ -1,12 +1,11 @@
 // 프로필 이미지 경로: /images/profile-{id}.png
-// 현재 준비된 4명: kim, lee, park, choi
-// 윤서현(yoon)·장미래(jang)는 추후 교체 예정 — fallback(이니셜)만 표시
+// 이미지 로드 실패 시 이니셜 fallback 표시
 const MEMBERS = [
+  { id: 'yoon', name: '윤서현', title: '팀장', years: '입사 16년차', role: '사업기획팀 총괄·워크숍 총괄' },
   { id: 'lee',  name: '이수진', title: '과장', years: '입사 12년차', role: '예산·운영 총괄' },
-  { id: 'yoon', name: '윤서현', title: '과장', years: null,          role: '일정·대외 담당' },
   { id: 'kim',  name: '김민준', title: '대리', years: '입사 5년차',  role: '대외행사 운영' },
   { id: 'choi', name: '최지원', title: '대리', years: '입사 5년차',  role: '숙박·행정 지원' },
-  { id: 'jang', name: '장미래', title: '대리', years: null,          role: '콘텐츠 기획' },
+  { id: 'jang', name: '장미래', title: '대리', years: '입사 7년차',  role: '콘텐츠 기획' },
   { id: 'park', name: '박준혁', title: '주임', years: '입사 2년차',  role: '프로그램 운영 지원' },
 ]
 

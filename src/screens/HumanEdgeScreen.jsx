@@ -1,7 +1,5 @@
 import { useState } from 'react'
 
-const COMPANION_OPTIONS = ['윤서현 과장', '장미래 대리']
-
 export default function HumanEdgeScreen({
   humanEdgeResult, currentPlan,
   selectedOption, setSelectedOption,
@@ -10,15 +8,11 @@ export default function HumanEdgeScreen({
   onComplete
 }) {
   const [expandedId, setExpandedId] = useState(null)
-  const [companion, setCompanion] = useState('')
 
   if (!humanEdgeResult) return <div className="page">로딩 중...</div>
 
-  const { assistant_message, options, final_question, pattern } = humanEdgeResult
-  const isP2 = (id) => {
-    const opt = options?.find(o => o.id === id)
-    return opt?.title?.includes('P2') || opt?.title?.includes('개인 배려')
-  }
+  const { assistant_message, options, final_question } = humanEdgeResult
+  const cardCount = (options || []).length  // 2 또는 3
 
   const handleSelectOption = (opt) => {
     if (expandedId === opt.id) {
@@ -26,20 +20,10 @@ export default function HumanEdgeScreen({
       return
     }
     setExpandedId(opt.id)
-    if (!isP2(opt.id)) {
-      setSelectedOption({ id: opt.id, title: opt.title })
-      setCompanion('')
-    } else {
-      setSelectedOption(null)
-      setCompanion('')
-    }
+    setSelectedOption({ id: opt.id, title: opt.title || opt.label })
   }
 
-  const handleCompanionSelect = (c, opt) => {
-    setCompanion(c)
-    setSelectedOption({ id: opt.id, title: opt.title, companion: c })
-  }
-
+  const isSelected = (id) => selectedOption?.id === id
   const canProceed = !!selectedOption && priorityText.trim() && tradeoffText.trim()
 
   return (
@@ -51,79 +35,73 @@ export default function HumanEdgeScreen({
         <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.8', color: 'var(--text-secondary)' }}>{assistant_message}</p>
       </div>
 
-      {/* 3개 카드 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
+      {/* 비교 카드 — 2개 또는 3개 유연 grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${cardCount}, 1fr)`,
+        gap: '16px',
+        marginBottom: '32px'
+      }}>
         {(options || []).map((opt) => {
-          const isSelected = selectedOption?.id === opt.id
-          const isExpanded = expandedId === opt.id
-          const needsCompanion = isP2(opt.id)
+          const selected = isSelected(opt.id)
+          const label = opt.id === 'OUR_PLAN'
+            ? '우리 조가 만든 운영안'
+            : (opt.label || opt.title || '')
 
           return (
-            <div key={opt.id} style={{ display: 'flex', flexDirection: 'column' }}>
-              <div className="card" style={{
-                padding: '20px',
-                border: isSelected ? '2px solid var(--accent)' : isExpanded ? '2px solid #CBD5E1' : '1px solid var(--line)',
-                flex: 1,
-                transition: 'border 0.2s'
-              }}>
-                {opt.id === 'OUR_PLAN' && (
-                  <div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--accent)', marginBottom: '6px', letterSpacing: '0.05em' }}>
-                    ★ 우리 조가 만든 운영안
-                  </div>
-                )}
-                <h3 style={{ marginBottom: '10px', fontSize: '0.95rem' }}>{opt.title}</h3>
-                <p style={{ fontSize: '0.83rem', marginBottom: '14px', color: 'var(--text-secondary)' }}>{opt.plan_summary}</p>
+            <div key={opt.id} className="card" style={{
+              padding: '20px',
+              border: selected ? '2px solid var(--accent)' : '1px solid var(--line)',
+              transition: 'border 0.2s',
+              display: 'flex', flexDirection: 'column'
+            }}>
+              {opt.id === 'OUR_PLAN' && (
+                <div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--accent)', marginBottom: '6px', letterSpacing: '0.05em' }}>
+                  ★ 우리 조가 만든 운영안
+                </div>
+              )}
 
+              {/* 카드 제목 (P1/P3 라벨은 개발용이므로 UI에선 label 사용) */}
+              <h3 style={{ marginBottom: '10px', fontSize: '0.92rem', lineHeight: '1.4' }}>{label}</h3>
+              <p style={{ fontSize: '0.82rem', marginBottom: '14px', color: 'var(--text-secondary)', lineHeight: '1.55' }}>{opt.plan_summary}</p>
+
+              {/* 3요소: 우선 / 얻음 / 감수 */}
+              {opt.priority && (
                 <div style={{ marginBottom: '8px' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--green)', marginBottom: '3px' }}>얻는 것</div>
-                  <div style={{ fontSize: '0.83rem' }}>{opt.gain}</div>
+                  <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--accent)', marginBottom: '3px', letterSpacing: '0.04em' }}>우선하는 것</div>
+                  <div style={{ fontSize: '0.82rem' }}>{opt.priority}</div>
                 </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--red)', marginBottom: '3px' }}>감수하는 것</div>
-                  <div style={{ fontSize: '0.83rem' }}>{opt.tradeoff}</div>
-                </div>
+              )}
+              <div style={{ marginBottom: '8px' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '3px', letterSpacing: '0.04em' }}>얻는 것</div>
+                <div style={{ fontSize: '0.82rem' }}>{opt.gain}</div>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: '700', color: 'var(--text-secondary)', marginBottom: '3px', letterSpacing: '0.04em' }}>감수하는 것</div>
+                <div style={{ fontSize: '0.82rem' }}>{opt.tradeoff}</div>
+              </div>
 
-                {/* 선택 버튼 */}
+              {opt.needs_confirmation?.length > 0 && (
+                <div style={{ fontSize: '0.75rem', color: '#F59E0B', marginBottom: '12px' }}>
+                  ⚠ {opt.needs_confirmation.join(', ')}
+                </div>
+              )}
+
+              {/* 선택 버튼 */}
+              <div style={{ marginTop: 'auto' }}>
                 <button
                   onClick={() => handleSelectOption(opt)}
                   style={{
                     width: '100%', padding: '9px',
-                    background: isSelected ? 'var(--accent)' : 'white',
-                    color: isSelected ? 'white' : 'var(--text-primary)',
-                    border: isSelected ? 'none' : '1.5px solid var(--line)',
+                    background: selected ? 'var(--accent)' : 'white',
+                    color: selected ? 'white' : 'var(--text-primary)',
+                    border: selected ? 'none' : '1.5px solid var(--line)',
                     borderRadius: '10px', fontSize: '0.85rem',
                     fontWeight: '600', fontFamily: 'inherit', cursor: 'pointer'
                   }}
                 >
-                  {isSelected ? '✓ 선택됨' : '이 안 선택하기'}
+                  {selected ? '✓ 선택됨' : '이 안 선택하기'}
                 </button>
-
-                {/* P2 동행자 선택 — 인라인 확장 */}
-                {needsCompanion && isExpanded && (
-                  <div style={{ marginTop: '14px', padding: '14px', background: 'var(--bg)', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: '600', marginBottom: '10px', color: 'var(--text-secondary)' }}>
-                      김민준 대리와 함께 후발 출발할 팀원을 선택해주세요.
-                    </div>
-                    {COMPANION_OPTIONS.map(c => (
-                      <label key={c} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
-                        <input
-                          type="radio"
-                          name={`companion-${opt.id}`}
-                          value={c}
-                          checked={companion === c}
-                          onChange={() => handleCompanionSelect(c, opt)}
-                          style={{ accentColor: 'var(--accent)' }}
-                        />
-                        <span style={{ fontSize: '0.88rem' }}>{c}</span>
-                      </label>
-                    ))}
-                    {!companion && (
-                      <div style={{ fontSize: '0.78rem', color: '#9CA3AF', marginTop: '4px' }}>
-                        동행자를 선택해야 이 안을 최종 선택할 수 있어요.
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           )
@@ -180,7 +158,7 @@ export default function HumanEdgeScreen({
         </div>
       )}
 
-      {/* 최종 결재 버튼 */}
+      {/* 최종 결재 */}
       <div style={{ textAlign: 'center', paddingBottom: '60px' }}>
         {!canProceed && (
           <p style={{ fontSize: '0.83rem', color: '#9CA3AF', marginBottom: '12px' }}>

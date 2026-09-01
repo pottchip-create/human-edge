@@ -49,10 +49,22 @@ function evaluateC1(plan) {
 }
 
 // ── C2: 이수진 90분 연속 이동 없음 ────────────────────────
-// ⚠️ parseRestMinutes는 transport 문자열을 제외하고 휴식 관련 텍스트에서만 파싱
-function parseRestMinutes(text) {
-  const m = text.match(/(\d+)\s*분/)
-  return m ? parseInt(m[1], 10) : null
+// 우선순위: transport_groups[].break.duration_min → 연속이동시간 숫자 → 자유텍스트 키워드
+// substring 방식('60분' 포함 등) 미사용 — 160분 오인 방지
+
+// 텍스트에서 숫자 추출 (앞에 다른 숫자가 붙지 않는 독립 숫자만)
+function extractMinutes(text) {
+  // 예: "15분", "15 분" — 단, "160분"의 60은 잡지 않음
+  const matches = [...text.matchAll(/(?<![\d])(\d{1,3})\s*분/g)]
+  const nums = matches.map(m => Number(m[1]))
+  return nums.length > 0 ? nums : null
+}
+
+// transport 문자열에서 연속 이동시간 숫자 추출 (90, 85 등)
+function extractTravelMinutes(transport) {
+  const matches = [...transport.matchAll(/(?<![\d])(\d{1,3})\s*분/g)]
+  const nums = matches.map(m => Number(m[1]))
+  return nums.length > 0 ? Math.max(...nums) : null
 }
 
 function evaluateC2(plan) {
@@ -60,36 +72,60 @@ function evaluateC2(plan) {
   const transport = plan.transport || ''
   const day1 = plan.day1 || []
 
-  // ITX / 기차 → 90분 미만 → PASS
-  if (transport.includes('ITX') || transport.includes('기차') ||
-      transport.includes('60분') || transport.includes('70분') || transport.includes('80분')) {
-    return { status: 'PASS', reason: '90분 미만 이동 수단 반영됨' }
+  // ① transport_groups에 구조화된 break.duration_min이 있으면 최우선 사용
+  if (plan.transport_groups && plan.transport_groups.length > 0) {
+    for (const g of plan.transport_groups) {
+      const breakMin = g.break?.duration_min
+      if (breakMin != null) {
+        const min = Number(breakMin)
+        if (min >= 15) return { status: 'PASS', reason: `이동 그룹 중간 휴식 ${min}분 — 조건 충족` }
+        if (min >= 1)  return { status: 'PARTIAL', reason: `이동 그룹 중간 휴식 ${min}분 — 15분 미만` }
+      }
+    }
+    // break가 없으면 그룹별 depart/arrival 차이로 연속 이동 추정 생략(자유텍스트로 폴백)
   }
 
-  // day1에서 휴식 항목만 추출 (transport 제외 — 90분 오인 방지)
+  // ② ITX / 기차 키워드 → 교통수단 자체가 짧은 이동이므로 PASS
+  if (/ITX|기차|KTX/.test(transport)) {
+    return { status: 'PASS', reason: '90분 미만 이동 수단 (기차) 반영됨' }
+  }
+
+  // ③ transport 문자열에서 연속 이동시간 숫자를 추출해 비교
+  //    "약 85분", "89분" → PASS / "90분", "160분" → FAIL 후보
+  const travelMins = extractTravelMinutes(transport)
+  if (travelMins !== null && !transport.includes('휴식') && !transport.includes('휴게소')) {
+    if (travelMins < 90) return { status: 'PASS', reason: `연속 이동시간 약 ${travelMins}분 — 90분 미만` }
+    // 90분 이상이면 day1 휴식 체크로 넘어감 (휴식 추가 가능성)
+  }
+
+  // ④ day1에서 휴식 항목 추출
   const restActivities = day1
-    .filter(e => e.activity?.includes('휴식') || e.activity?.includes('휴게소') || e.activity?.includes('정차'))
+    .filter(e => /휴식|휴게소|정차/.test(e.activity || ''))
     .map(e => e.activity)
 
-  // program_notes에서 휴식 관련 문장만 추출
+  // program_notes에서 휴식 관련 문장만
   const restNotes = notes.split(/[.。\n]/)
     .filter(s => /휴식|정차|휴게소/.test(s))
     .join(' ')
 
   const restText = [...restActivities, restNotes].join(' ').trim()
-  const hasRestKeyword = restText.length > 0
 
-  if (hasRestKeyword) {
-    const mins = parseRestMinutes(restText)
-    if (mins !== null) {
-      if (mins >= 15) return { status: 'PASS', reason: `중간 ${mins}분 휴식 반영됨 — 조건 충족` }
-      return { status: 'PARTIAL', reason: `중간 ${mins}분 휴식 — 15분 미만으로 조건 미충족` }
+  if (restText.length > 0) {
+    const nums = extractMinutes(restText)
+    if (nums !== null) {
+      const maxMin = Math.max(...nums)
+      if (maxMin >= 15) return { status: 'PASS', reason: `중간 ${maxMin}분 휴식 반영됨 — 조건 충족` }
+      return { status: 'PARTIAL', reason: `중간 ${maxMin}분 휴식 — 15분 미만으로 조건 미충족` }
     }
-    // 시간 명시 없는 휴식 → PARTIAL
+    // 숫자 없는 휴식 언급 → PARTIAL
     return { status: 'PARTIAL', reason: '휴식 언급 있으나 시간 불명확 (15분 이상 필요)' }
   }
 
-  if (transport.includes('90분') || transport.includes('전세버스')) {
+  // ⑤ transport에 90분 이상 + 휴식 없음 → FAIL
+  if (travelMins !== null && travelMins >= 90) {
+    return { status: 'FAIL', reason: `연속 이동 약 ${travelMins}분 — 90분 이상, 휴식 없음` }
+  }
+  if (/90분|전세버스/.test(transport) && restText.length === 0) {
     return { status: 'FAIL', reason: '90분 연속 이동 유지됨' }
   }
 

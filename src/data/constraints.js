@@ -14,7 +14,7 @@ export const FIXED_CONSTRAINTS = {
     initial: [
       { room: 1, members: ['김민준 대리', '박준혁 주임'] },
       { room: 2, members: ['이수진 과장', '최지원 대리'] },
-      { room: 3, members: ['윤서현 과장', '장미래 대리'] }
+      { room: 3, members: ['윤서현 팀장', '장미래 대리'] }
     ]
   },
   pottery: {
@@ -49,7 +49,7 @@ export const INITIAL_PLAN = {
   rooms: [
     { room: 1, members: ['김민준 대리', '박준혁 주임'] },
     { room: 2, members: ['이수진 과장', '최지원 대리'] },
-    { room: 3, members: ['윤서현 과장', '장미래 대리'] }
+    { room: 3, members: ['윤서현 팀장', '장미래 대리'] }
 ],
   transport: '전세버스 (편도 약 90분)',
   estimatedCost: 120

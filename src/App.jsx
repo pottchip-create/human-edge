@@ -109,9 +109,7 @@ function CompleteScreen({ selectedOption, priorityText, tradeoffText, onDebrief 
           <div className="card" style={{ padding: '24px', marginBottom: '16px', border: '2px solid var(--accent)' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--accent)', marginBottom: '6px', letterSpacing: '0.05em' }}>선택한 운영안</div>
             <div style={{ fontWeight: '600', fontSize: '1rem' }}>{selectedOption.title}</div>
-            {selectedOption.companion && (
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>동행자: {selectedOption.companion}</div>
-            )}
+
           </div>
         )}
 

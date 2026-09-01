@@ -47,9 +47,8 @@ export default function IntroScreen({ onNext }) {
           </h2>
 
           <p style={{ fontSize: '0.95rem', marginBottom: '32px', lineHeight: '1.75', color: 'var(--text-secondary)' }}>
-            팀원 6명의 사정을 직접 확인하고<br />
-            운영안을 다듬는 과정에서<br />
-            직관·공감·판단의 가치를 경험합니다.
+팀원들의 상황을 살펴보고,<br />
+            이 운영안을 더 나은 안으로 다듬어보세요.
           </p>
 
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -80,7 +79,7 @@ export default function IntroScreen({ onNext }) {
               { step: '02', title: 'AI 초안 확인', desc: 'AI에게 주어진 정보와 AI가 만든 초안을 확인합니다.' },
               { step: '03', title: '개인 탐색', desc: '각자 QR을 스캔해 팀원과 대화하며 상황을 파악합니다.' },
               { step: '04', title: '운영안 조율', desc: '발견한 내용을 AI에게 전달해 운영안을 개선합니다.' },
-              { step: '05', title: '최종 결재', desc: '모든 사정이 반영되면 가치를 판단하고 결재합니다.' },
+              { step: '05', title: '최종 결재', desc: '운영안이 완성되면 판단하고 결재합니다.' },
             ].map(item => (
               <div key={item.step} style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
                 <div style={{

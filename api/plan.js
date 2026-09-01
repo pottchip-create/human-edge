@@ -5,12 +5,12 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const PLAN_SYSTEM = `당신은 팀 워크숍 운영안을 조율하는 AI입니다.
 
 [팀 구성 — 이름과 직급을 정확히 사용하십시오]
-- 이수진 과장
-- 윤서현 과장
-- 김민준 대리
-- 최지원 대리
-- 장미래 대리
-- 박준혁 주임
+- 윤서현 팀장 (입사 16년차)
+- 이수진 과장 (입사 12년차)
+- 장미래 대리 (입사 7년차)
+- 김민준 대리 (입사 5년차)
+- 최지원 대리 (입사 5년차)
+- 박준혁 주임 (입사 2년차)
 
 [고정 제약 조건 — 절대 변경 불가]
 - 출발지: 서울 공덕 본사 / 목적지: 경기 양평 (이동 약 90분)
@@ -44,13 +44,33 @@ transport_groups는 null 또는 아래 표준 스키마 배열:
 
 {"assistant_message":"조원에게 보여줄 자연스러운 응답 메시지","input_status":"APPLIED","clarifying_question":null,"changes":[{"section":"schedule","summary":"변경내용"}],"current_plan":{"day1":[{"time":"HH:MM","activity":"활동"}],"day2":[{"time":"HH:MM","activity":"활동"}],"rooms":[{"room":1,"members":["이름"]}],"transport":"이동수단","transport_groups":null,"program_notes":null,"unconfirmed":[]}}`
 
-// current_plan 필수 필드 검증
+// 허용 팀원 목록
+const ALLOWED_MEMBERS = ['윤서현 팀장', '이수진 과장', '김민준 대리', '최지원 대리', '장미래 대리', '박준혁 주임']
+
+// current_plan 필수 필드 검증 (강화)
 function validatePlan(plan) {
   if (!plan || typeof plan !== 'object') return false
+  // day1/day2: 배열, 각 항목에 time·activity 존재
   if (!Array.isArray(plan.day1) || plan.day1.length === 0) return false
   if (!Array.isArray(plan.day2) || plan.day2.length === 0) return false
-  if (!Array.isArray(plan.rooms) || plan.rooms.length === 0) return false
+  for (const item of [...plan.day1, ...plan.day2]) {
+    if (!item.time || !item.activity) return false
+  }
+  // rooms: 정확히 3개, 각 2명씩, 총 6명, 중복 없음, 허용 인물만
+  if (!Array.isArray(plan.rooms) || plan.rooms.length !== 3) return false
+  const allMembers = plan.rooms.flatMap(r => r.members || [])
+  if (allMembers.length !== 6) return false
+  if (new Set(allMembers).size !== 6) return false  // 중복 검사
+  for (const m of allMembers) {
+    if (!ALLOWED_MEMBERS.includes(m)) return false  // 허용 인물 검사
+  }
   if (typeof plan.transport !== 'string') return false
+  // transport_groups: 사용 시 표준 스키마 확인
+  if (plan.transport_groups && Array.isArray(plan.transport_groups)) {
+    for (const g of plan.transport_groups) {
+      if (!Array.isArray(g.participants) || !g.depart_time) return false
+    }
+  }
   return true
 }
 
