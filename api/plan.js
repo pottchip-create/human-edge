@@ -26,9 +26,11 @@ const PLAN_SYSTEM = `당신은 팀 워크숍 운영안을 조율하는 AI입니�
 4. 사용자를 특정 팀원 이름으로 부르지 마십시오. 사용자는 조 전체입니다.
 5. 확인이 필요한 사항이 있어도 일정은 반드시 업데이트하십시오. 미확정 항목은 unconfirmed 배열에 넣으십시오.
 6. 이동 중 휴식을 반영할 때는 day1 항목에 "HH:MM 휴식 (XX분)"처럼 시간을 반드시 명시하십시오.
-6. 응답은 반드시 아래 JSON 형식으로만 출력하십시오. 마크다운 코드블록 없이 순수 JSON만 출력하십시오.
+7. unconfirmed 배열의 각 항목은 반드시 문자열(string)이어야 합니다. 객체가 아닌 짧은 한국어 문장으로 작성하십시오. 예: ["이수진 과장 이동 방법 미확정"]
+8. 이수진 과장의 허리 치료로 인한 이동 불편은 별도 이동수단이 아닌 이동 중간 휴식(15분 이상)으로 해결하십시오. 전세버스 이동 중 중간 휴게소에 정차하는 것이 기본 해결책입니다.
+9. 응답은 반드시 아래 JSON 형식으로만 출력하십시오. 마크다운 코드블록 없이 순수 JSON만 출력하십시오.
 
-{"assistant_message":"조원에게 보여줄 자연스러운 응답 메시지","input_status":"APPLIED","clarifying_question":null,"changes":[{"section":"schedule","summary":"변경내용"}],"current_plan":{"day1":[{"time":"HH:MM","activity":"활동"}],"day2":[{"time":"HH:MM","activity":"활동"}],"rooms":[{"room":1,"members":["이름"]}],"transport":"이동수단","transport_groups":null 또는 [{"members":["이름"],"departure":"HH:MM","method":"이동수단"}],"program_notes":null,"unconfirmed":[]}}`
+{"assistant_message":"조원에게 보여줄 자연스러운 응답 메시지","input_status":"APPLIED","clarifying_question":null,"changes":[{"section":"schedule","summary":"변경내용"}],"current_plan":{"day1":[{"time":"HH:MM","activity":"활동"}],"day2":[{"time":"HH:MM","activity":"활동"}],"rooms":[{"room":1,"members":["이름"]}],"transport":"이동수단","transport_groups":null 또는 [{"members":["이름"],"departure":"HH:MM","method":"이동수단"}],"program_notes":null,"unconfirmed":["미확정 항목을 짧은 문자열로"]}}`
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { CHARACTERS } from '../data/characters'
 import { askCharacter } from '../api'
 import SafeBold from './SafeBold'
@@ -10,6 +10,7 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
   const [inputMap, setInputMap] = useState({})
   const [loadingMap, setLoadingMap] = useState({})
   const [turnsMap, setTurnsMap] = useState({})
+  const chatBottomRef = useRef(null)
   const MAX_TURNS = 5
 
   if (!unreflectedKeys || unreflectedKeys.length === 0) return null
@@ -26,6 +27,13 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
 
   const setInput = (v) => setInputMap(m => ({ ...m, [currentKey]: v }))
   const openChat = () => setChatOpenMap(m => ({ ...m, [currentKey]: true }))
+
+  // 메시지/로딩 변경 시 자동 스크롤
+  useEffect(() => {
+    if (chatBottomRef.current) {
+      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages, loading, chatOpen])
 
   const sendMessage = async () => {
     if (!input.trim() || loading || turns >= MAX_TURNS) return
@@ -59,104 +67,108 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
           backdropFilter: 'blur(12px)',
           border: `2px solid ${character.color}30`,
           borderBottom: chatOpen ? 'none' : undefined,
-          borderRadius: chatOpen ? '20px 20px 0 0' : '20px 20px 0 0',
-          padding: '20px 24px',
-          display: 'flex', alignItems: 'flex-end', gap: '20px',
+          borderRadius: '20px 20px 0 0',
+          overflow: 'hidden',
           boxShadow: '0 -8px 32px rgba(0,0,0,0.12)'
         }}>
 
-          {/* 인물 이미지 영역 */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-            {/* 상황 사진 (작게) */}
-            <div style={{ width: '100px', borderRadius: '10px', overflow: 'hidden', border: '1.5px solid var(--line)' }}>
-              <img
-                src={character.situationImage}
-                alt={`${character.name} 상황`}
-                style={{ width: '100%', display: 'block', objectFit: 'cover', height: '70px' }}
-                onError={e => { e.target.style.display = 'none' }}
-              />
-            </div>
+          {/* 상황 사진 — 상단 가로 꽉 차게 */}
+          <div style={{ width: '100%', height: '160px', overflow: 'hidden' }}>
+            <img
+              src={character.situationImage}
+              alt={`${character.name} 상황`}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              onError={e => { e.target.parentElement.style.display = 'none' }}
+            />
+          </div>
+
+          {/* 하단 영역: 미반영 이미지 + 말풍선 + 버튼 */}
+          <div style={{
+            padding: '16px 24px 20px',
+            display: 'flex', alignItems: 'flex-end', gap: '16px'
+          }}>
+
             {/* 미반영 표정 이미지 */}
-            <div style={{ width: '100px', alignSelf: 'flex-end' }}>
+            <div style={{ width: '80px', flexShrink: 0 }}>
               <img
                 src={character.unreflectedImage}
                 alt={character.name}
                 style={{ width: '100%', objectFit: 'contain', display: 'block' }}
               />
             </div>
-          </div>
 
-          {/* 말풍선 + 버튼 */}
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: character.color }}>
-                {character.name} {character.title}
-              </span>
-              {unreflectedKeys.length > 1 && (
-                <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
-                  {currentIdx + 1} / {unreflectedKeys.length}
+            {/* 말풍선 + 버튼 */}
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: '700', color: character.color }}>
+                  {character.name} {character.title}
                 </span>
-              )}
-            </div>
+                {unreflectedKeys.length > 1 && (
+                  <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>
+                    {currentIdx + 1} / {unreflectedKeys.length}
+                  </span>
+                )}
+              </div>
 
-            {/* 말풍선 */}
-            <div style={{
-              background: character.bgColor,
-              border: `1.5px solid ${character.color}40`,
-              borderRadius: '4px 16px 16px 16px',
-              padding: '12px 16px', fontSize: '0.93rem',
-              lineHeight: '1.65', color: '#222', marginBottom: '14px'
-            }}>
-              {character.unreflectedMsg}
-            </div>
+              {/* 말풍선 */}
+              <div style={{
+                background: character.bgColor,
+                border: `1.5px solid ${character.color}40`,
+                borderRadius: '4px 16px 16px 16px',
+                padding: '12px 16px', fontSize: '0.93rem',
+                lineHeight: '1.65', color: '#222', marginBottom: '14px'
+              }}>
+                {character.unreflectedMsg}
+              </div>
 
-            {/* 버튼 */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-              {unreflectedKeys.length > 1 && (
-                <>
-                  <button
-                    onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
-                    disabled={currentIdx === 0}
-                    style={{
-                      background: 'white', color: '#6B7280',
-                      border: '1.5px solid #E5E7EB', borderRadius: '100px',
-                      padding: '8px 14px', fontSize: '0.85rem',
-                      fontFamily: 'inherit', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer',
-                      opacity: currentIdx === 0 ? 0.4 : 1
-                    }}
-                  >← 이전</button>
-                  <button
-                    onClick={() => setCurrentIdx(i => Math.min(unreflectedKeys.length - 1, i + 1))}
-                    disabled={currentIdx === unreflectedKeys.length - 1}
-                    style={{
-                      background: 'white', color: '#6B7280',
-                      border: '1.5px solid #E5E7EB', borderRadius: '100px',
-                      padding: '8px 14px', fontSize: '0.85rem',
-                      fontFamily: 'inherit',
-                      cursor: currentIdx === unreflectedKeys.length - 1 ? 'not-allowed' : 'pointer',
-                      opacity: currentIdx === unreflectedKeys.length - 1 ? 0.4 : 1
-                    }}
-                  >다음 →</button>
-                </>
-              )}
-              {!chatOpen && (
-                <button onClick={openChat} style={{
-                  background: character.color, color: 'white',
-                  border: 'none', borderRadius: '100px',
+              {/* 버튼 */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                {unreflectedKeys.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
+                      disabled={currentIdx === 0}
+                      style={{
+                        background: 'white', color: '#6B7280',
+                        border: '1.5px solid #E5E7EB', borderRadius: '100px',
+                        padding: '8px 14px', fontSize: '0.85rem',
+                        fontFamily: 'inherit', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer',
+                        opacity: currentIdx === 0 ? 0.4 : 1
+                      }}
+                    >← 이전</button>
+                    <button
+                      onClick={() => setCurrentIdx(i => Math.min(unreflectedKeys.length - 1, i + 1))}
+                      disabled={currentIdx === unreflectedKeys.length - 1}
+                      style={{
+                        background: 'white', color: '#6B7280',
+                        border: '1.5px solid #E5E7EB', borderRadius: '100px',
+                        padding: '8px 14px', fontSize: '0.85rem',
+                        fontFamily: 'inherit',
+                        cursor: currentIdx === unreflectedKeys.length - 1 ? 'not-allowed' : 'pointer',
+                        opacity: currentIdx === unreflectedKeys.length - 1 ? 0.4 : 1
+                      }}
+                    >다음 →</button>
+                  </>
+                )}
+                {!chatOpen && (
+                  <button onClick={openChat} style={{
+                    background: character.color, color: 'white',
+                    border: 'none', borderRadius: '100px',
+                    padding: '8px 18px', fontSize: '0.85rem',
+                    fontWeight: '600', fontFamily: 'inherit', cursor: 'pointer'
+                  }}>
+                    이 사람과 대화해보기
+                  </button>
+                )}
+                <button onClick={onClose} style={{
+                  background: 'white', color: '#374151',
+                  border: '1.5px solid #E5E7EB', borderRadius: '100px',
                   padding: '8px 18px', fontSize: '0.85rem',
                   fontWeight: '600', fontFamily: 'inherit', cursor: 'pointer'
                 }}>
-                  이 사람과 대화해보기
+                  운영안으로 돌아가기
                 </button>
-              )}
-              <button onClick={onClose} style={{
-                background: 'white', color: '#374151',
-                border: '1.5px solid #E5E7EB', borderRadius: '100px',
-                padding: '8px 18px', fontSize: '0.85rem',
-                fontWeight: '600', fontFamily: 'inherit', cursor: 'pointer'
-              }}>
-                운영안으로 돌아가기
-              </button>
+              </div>
             </div>
           </div>
         </div>
@@ -170,7 +182,7 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
             padding: '0 24px 16px', pointerEvents: 'auto'
           }}>
             <div style={{
-              height: '180px', overflowY: 'auto',
+              height: '200px', overflowY: 'auto',
               display: 'flex', flexDirection: 'column',
               gap: '8px', paddingTop: '12px', marginBottom: '10px'
             }}>
@@ -196,6 +208,8 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
                   ...
                 </div>
               )}
+              {/* 자동 스크롤 앵커 */}
+              <div ref={chatBottomRef} />
             </div>
             {turns < MAX_TURNS ? (
               <div style={{ display: 'flex', gap: '8px' }}>

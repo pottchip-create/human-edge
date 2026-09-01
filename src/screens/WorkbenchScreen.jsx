@@ -149,7 +149,9 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
               )}
               {(currentPlan.unconfirmed || []).length > 0 && (
                 <div style={{ padding: '8px 10px', background: 'var(--yellow-soft)', borderRadius: '8px', fontSize: '0.82rem', color: '#92400E', marginTop: '8px' }}>
-                  ⏳ 미확정: {currentPlan.unconfirmed.join(', ')}
+                  ⏳ 미확정: {currentPlan.unconfirmed.map(u =>
+                    typeof u === 'string' ? u : (u.item || u.description || u.content || JSON.stringify(u))
+                  ).join(', ')}
                 </div>
               )}
             </div>
