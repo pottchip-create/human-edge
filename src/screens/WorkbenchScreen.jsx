@@ -4,6 +4,7 @@ import { askPlan } from '../api'
 import { evaluatePlan } from '../evaluate'
 import UnreflectedPopup from '../components/UnreflectedPopup'
 import SafeBold from '../components/SafeBold'
+import CurrentPlanCard from '../components/CurrentPlanCard'
 
 // 실제 프롬프트는 api/plan.js에서 관리합니다
 
@@ -17,6 +18,7 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
   const [showPopup, setShowPopup] = useState(false)
   const [popupShown, setPopupShown] = useState(false)
   const chatBottomRef = useRef(null)
+  const [highlightKeys, setHighlightKeys] = useState([])
 
   useEffect(() => {
     if (chatBottomRef.current) {
@@ -41,7 +43,18 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
     setLoading(true)
     try {
       const data = await askPlan(newHistory, currentPlan)
-      if (data.current_plan) setCurrentPlan(data.current_plan)
+      if (data.current_plan) {
+        // 변경된 섹션 감지 → soft coral 강조
+        const changed = []
+        const np = data.current_plan
+        if (JSON.stringify(np.day1) !== JSON.stringify(currentPlan.day1)) changed.push('day1')
+        if (JSON.stringify(np.day2) !== JSON.stringify(currentPlan.day2)) changed.push('day2')
+        if (JSON.stringify(np.rooms) !== JSON.stringify(currentPlan.rooms)) changed.push('rooms')
+        if (JSON.stringify(np.transport_groups) !== JSON.stringify(currentPlan.transport_groups)) changed.push('transport_groups')
+        if (np.transport !== currentPlan.transport) changed.push('transport')
+        setCurrentPlan(np)
+        if (changed.length > 0) setHighlightKeys(changed)
+      }
       const reply = data.assistant_message || '처리했습니다.'
       setMessages(prev => [...prev, { role: 'assistant', content: reply, display: reply }])
     } catch {
@@ -87,7 +100,7 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
       <div style={{
         flex: 1,
         display: 'grid',
-        gridTemplateColumns: '1fr 1.5fr',
+        gridTemplateColumns: '3fr 2fr',
         gap: '20px',
         padding: '0 40px 20px',
         minHeight: 0
@@ -104,46 +117,9 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
             padding: '18px',
             minHeight: 0
           }}>
-            <h3 style={{ marginBottom: '12px', fontSize: '0.95rem', flexShrink: 0 }}>📅 현재 운영안</h3>
+            <h3 style={{ marginBottom: '12px', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.05em', flexShrink: 0 }}>CURRENT PLAN</h3>
             <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-              <div style={{ marginBottom: '10px' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '5px', fontWeight: '700' }}>1일차</div>
-                {(currentPlan.day1 || []).map((item, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '5px', fontSize: '0.83rem' }}>
-                    <span style={{ color: 'var(--accent)', fontWeight: '600', minWidth: '38px', flexShrink: 0 }}>{item.time}</span>
-                    <span>{item.activity}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ marginBottom: '10px' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '5px', fontWeight: '700' }}>2일차</div>
-                {(currentPlan.day2 || []).map((item, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '5px', fontSize: '0.83rem' }}>
-                    <span style={{ color: 'var(--accent)', fontWeight: '600', minWidth: '38px', flexShrink: 0 }}>{item.time}</span>
-                    <span>{item.activity}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ marginBottom: '6px' }}>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '5px', fontWeight: '700' }}>숙박</div>
-                {(currentPlan.rooms || []).map((r, i) => (
-                  <div key={i} style={{ fontSize: '0.83rem', marginBottom: '3px' }}>
-                    <span style={{ fontWeight: '600' }}>방 {r.room}</span>: {(r.members || []).join(', ')}
-                  </div>
-                ))}
-              </div>
-              {currentPlan.program_notes && (
-                <div style={{ padding: '8px 10px', background: 'var(--blue-soft)', borderRadius: '8px', fontSize: '0.82rem', marginTop: '8px' }}>
-                  📝 {currentPlan.program_notes}
-                </div>
-              )}
-              {(currentPlan.unconfirmed || []).length > 0 && (
-                <div style={{ padding: '8px 10px', background: 'var(--yellow-soft)', borderRadius: '8px', fontSize: '0.82rem', color: '#92400E', marginTop: '8px' }}>
-                  ⏳ 미확정: {currentPlan.unconfirmed.map(u =>
-                    typeof u === 'string' ? u : (u.item || u.description || u.content || JSON.stringify(u))
-                  ).join(', ')}
-                </div>
-              )}
+              <CurrentPlanCard plan={currentPlan} mode="live" highlightKeys={highlightKeys} />
             </div>
           </div>
 
@@ -178,7 +154,7 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
           padding: '18px',
           minHeight: 0
         }}>
-          <h3 style={{ marginBottom: '10px', fontSize: '0.95rem', flexShrink: 0 }}>🤖 AI와 조율하기</h3>
+          <h3 style={{ marginBottom: '10px', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.05em', flexShrink: 0 }}>AI와 조율하기</h3>
 
           {showPopup && (
             <div style={{

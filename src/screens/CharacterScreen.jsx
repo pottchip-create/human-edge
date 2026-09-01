@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { CHARACTERS } from '../data/characters'
 import SafeBold from '../components/SafeBold'
 import { askCharacter } from '../api'
@@ -9,7 +9,14 @@ export default function CharacterScreen({ clueId }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [turns, setTurns] = useState(0)
+  const chatBottomRef = useRef(null)
   const MAX_TURNS = 5
+
+  useEffect(() => {
+    if (chatBottomRef.current) {
+      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages, loading])
 
   if (!character) return <div className="page">잘못된 접근입니다.</div>
 
@@ -25,103 +32,146 @@ export default function CharacterScreen({ clueId }) {
       setMessages([...newMessages, { role: 'assistant', content: data.message }])
       setTurns(t => t + 1)
     } catch (e) {
-      setMessages([...newMessages, { role: 'assistant', content: '오류가 발생했습니다: ' + e.message }])
+      setMessages([...newMessages, { role: 'assistant', content: '오류가 발생했습니다.' }])
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '20px', maxWidth: '480px', margin: '0 auto' }}>
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
+  }
 
-      {/* 상황 그림 카드 */}
-      <div className="card fade-in" style={{ marginBottom: '16px', padding: '0', overflow: 'hidden' }}>
-        <img
-          src={character.situationImage}
-          alt={`${character.name} 상황`}
-          style={{ width: '100%', display: 'block', objectFit: 'cover', maxHeight: '280px' }}
-          onError={e => { e.target.style.display = 'none' }}
-        />
-        <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+  const remainingTurns = MAX_TURNS - turns
+
+  return (
+    <div style={{
+      minHeight: '100vh', background: 'var(--bg)',
+      maxWidth: '480px', margin: '0 auto',
+      display: 'flex', flexDirection: 'column'
+    }}>
+
+      {/* 상황 이미지 — 상단 고정, 충분한 비중 */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', paddingBottom: '8px' }}>
+        <div style={{ overflow: 'hidden', borderRadius: '0 0 20px 20px' }}>
+          <img
+            src={character.situationImage}
+            alt={`${character.name} 상황`}
+            style={{ width: '100%', display: 'block', objectFit: 'cover', height: '240px' }}
+            onError={e => { e.target.parentElement.style.display = 'none' }}
+          />
+        </div>
+        {/* 인물 정보 바 */}
+        <div style={{
+          padding: '10px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '50%',
+              background: 'var(--accent)', color: 'white',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.9rem', fontWeight: '700', flexShrink: 0
+            }}>
+              {character.initial}
+            </div>
+            <div>
+              <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>{character.name} {character.title}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{character.years}</div>
+            </div>
+          </div>
           <div style={{
-            width: '44px', height: '44px', borderRadius: '50%',
-            background: character.color, color: 'white',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '1.1rem', fontWeight: '700', flexShrink: 0
+            fontSize: '0.78rem', color: turns >= MAX_TURNS ? 'var(--text-muted)' : 'var(--text-secondary)',
+            fontWeight: '600', background: 'white',
+            border: '1px solid var(--line)', borderRadius: '100px',
+            padding: '4px 10px'
           }}>
-            {character.initial}
+            질문 {turns} · 최대 {MAX_TURNS}회
           </div>
-          <div>
-            <div style={{ fontWeight: '700', fontSize: '1rem' }}>{character.name} {character.title}</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{character.years}</div>
-          </div>
+        </div>
+        <div style={{ padding: '0 20px 8px', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+          {character.name} {character.title}의 최근 모습입니다.<br />
+          이 장면을 보며 한 번 더 확인해보고 싶은 것이 있나요?
         </div>
       </div>
 
-      {/* 챗봇 카드 */}
-      <div className="card" style={{ marginBottom: '12px' }}>
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{ fontSize: '0.8rem', fontWeight: '700', color: character.color, marginBottom: '2px' }}>
-            {character.name} {character.title}와 대화하기
+      {/* 대화 영역 */}
+      <div style={{ flex: 1, padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '8px', paddingBottom: '4px' }}>
+        {messages.length === 0 && (
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '24px' }}>
+            궁금한 것을 자유롭게 물어보세요.
+          </p>
+        )}
+        {messages.map((m, i) => (
+          <div key={i} style={{
+            alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+            background: m.role === 'user' ? 'var(--accent)' : 'white',
+            color: m.role === 'user' ? 'white' : 'var(--text-primary)',
+            padding: '10px 14px',
+            borderRadius: m.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
+            maxWidth: '82%', fontSize: '0.88rem', lineHeight: '1.6',
+            border: m.role === 'user' ? 'none' : '1px solid var(--line)',
+            whiteSpace: 'pre-wrap'
+          }}>
+            <SafeBold text={m.content} />
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-            자유롭게 질문하면서 이 사람의 상황을 파악해보세요.
-          </div>
-        </div>
-
-        <div style={{ height: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
-          {messages.length === 0 && (
-            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '40px' }}>
-              궁금한 것을 자유롭게 물어보세요.
-            </p>
-          )}
-          {messages.map((m, i) => (
-            <div key={i} style={{
-              alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-              background: m.role === 'user' ? character.color : 'var(--bg)',
-              color: m.role === 'user' ? 'white' : 'var(--text-primary)',
-              padding: '9px 13px', borderRadius: '14px',
-              maxWidth: '82%', fontSize: '0.88rem', lineHeight: '1.6',
-              borderRadius: m.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px'
-            }}>
-              <SafeBold text={m.content} />
-            </div>
-          ))}
-          {loading && (
-            <div style={{ alignSelf: 'flex-start', background: 'var(--bg)', padding: '9px 13px', borderRadius: '4px 14px 14px 14px', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-              ...
-            </div>
-          )}
-        </div>
-
-        {turns >= MAX_TURNS && (
-          <div style={{ textAlign: 'center', padding: '10px', background: 'var(--yellow-soft)', borderRadius: '8px', fontSize: '0.85rem', color: '#92400E', marginBottom: '10px' }}>
-            💡 충분히 이야기를 나눴어요. 공유 화면에서 팀원들과 논의해보세요!
+        ))}
+        {loading && (
+          <div style={{
+            alignSelf: 'flex-start', background: 'white',
+            padding: '10px 14px', borderRadius: '4px 14px 14px 14px',
+            color: 'var(--text-muted)', fontSize: '0.88rem',
+            border: '1px solid var(--line)'
+          }}>
+            ...
           </div>
         )}
+        <div ref={chatBottomRef} />
+      </div>
 
-        {turns < MAX_TURNS && (
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input
+      {/* 입력 영역 — 하단 고정 */}
+      <div style={{
+        position: 'sticky', bottom: 0,
+        background: 'var(--bg)', padding: '12px 16px 20px',
+        borderTop: '1px solid var(--line)'
+      }}>
+        {turns >= MAX_TURNS ? (
+          <div style={{
+            textAlign: 'center', padding: '12px',
+            background: 'white', borderRadius: '12px',
+            border: '1px solid var(--line)',
+            fontSize: '0.85rem', color: 'var(--text-secondary)'
+          }}>
+            대화가 마무리됐어요. 공유 화면에서 팀원들과 논의해보세요.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+            <textarea
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && sendMessage()}
-              placeholder="질문을 입력하세요..."
+              onKeyDown={handleKeyDown}
+              placeholder="질문을 입력하세요… (Shift+Enter 줄바꿈)"
+              rows={1}
               disabled={loading}
               style={{
-                flex: 1, padding: '10px 14px', borderRadius: '100px',
+                flex: 1, padding: '10px 14px', borderRadius: '14px',
                 border: '1.5px solid var(--line)', fontSize: '0.88rem',
-                fontFamily: 'inherit', outline: 'none'
+                fontFamily: 'inherit', outline: 'none',
+                resize: 'none', lineHeight: '1.5', maxHeight: '80px', overflowY: 'auto',
+                background: 'white'
               }}
             />
             <button
               onClick={sendMessage}
               disabled={loading || !input.trim()}
               style={{
-                background: character.color, color: 'white', border: 'none',
+                background: 'var(--accent)', color: 'white', border: 'none',
                 borderRadius: '100px', padding: '10px 18px',
                 fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: '0.88rem',
+                fontSize: '0.88rem', flexShrink: 0,
                 opacity: loading || !input.trim() ? 0.5 : 1
               }}
             >
@@ -129,10 +179,6 @@ export default function CharacterScreen({ clueId }) {
             </button>
           </div>
         )}
-      </div>
-
-      <div style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-        발견한 내용을 공유 화면에서 팀원들에게 설명해보세요.
       </div>
     </div>
   )

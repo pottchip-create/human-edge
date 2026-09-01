@@ -105,18 +105,25 @@ function evaluateC3(plan) {
   const notes = plan.program_notes || ''
   const day1 = plan.day1 || []
 
+  // WHOLE_TEAM_SKIP: notes 또는 day1 항목 전체 텍스트에서 먼저 판정
+  const allDay1Text = (day1 || []).map(e => e.activity || '').join(' ')
+  if (WHOLE_TEAM_SKIP.test(notes) || WHOLE_TEAM_SKIP.test(allDay1Text)) {
+    return { status: 'PASS', reason: '팀 전체 도자기 프로그램 포기 명시 — 박준혁 강제 참여 없음' }
+  }
+
   const pottery = day1.find(e => e.activity?.includes('도자기') || e.activity?.includes('물레'))
 
   if (!pottery) {
-    // 도자기 일정 없음 — 의도적 전체 포기인지 단순 누락인지 구분
-    if (WHOLE_TEAM_SKIP.test(notes)) {
-      return { status: 'PASS', reason: '팀 전체 도자기 프로그램 포기 명시 — 박준혁 강제 참여 없음' }
-    }
-    // 명시 없으면 누락인지 포기인지 불명 → UNKNOWN
     return { status: 'UNKNOWN', reason: '도자기 일정 정보 없음 — 전체 미사용 여부 불명확' }
   }
 
   const combinedText = pottery.activity + ' ' + notes
+
+  // 부정+관찰/대안 조합 먼저 탐지: "물레 작업 안 함, 대신 관찰 참여" → PASS
+  const OPT_OUT_PLUS_ALT = /(물레|도자기).{0,20}(안\s*함|하지\s*않|불참|제외).{0,30}(관찰|방식\s*조정|별도\s*참여)|(관찰|방식\s*조정|별도\s*참여).{0,30}(물레|도자기).{0,20}(안\s*함|하지\s*않|불참|제외)/
+  if (OPT_OUT_PLUS_ALT.test(combinedText)) {
+    return { status: 'PASS', reason: '물레 미참여 + 관찰/대안 참여 조합 반영됨' }
+  }
 
   // 부정문 → UNKNOWN (단, 전원 필수는 FAIL)
   if (NEGATION.test(combinedText)) {
