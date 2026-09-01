@@ -97,7 +97,7 @@ function evaluateC2(plan) {
 }
 
 // ── C3: 박준혁 물레 필수 참여 강제 없음 ────────────────────
-const POSITIVE_ADJUSTMENT = /관찰|방식\s*조정|별도\s*참여|선택\s*참여|제외\s*허용|참여\s*방식|손목\s*부담\s*없|비손목|비\s*부담/
+const POSITIVE_ADJUSTMENT = /관찰|방식\s*조정|별도\s*참여|선택\s*참여|제외\s*허용|참여\s*방식|손목\s*부담\s*없|비손목|비\s*부담|부담.{0,4}없는\s*방식|부담\s*없이/
 const NEGATION = /하지\s*않음|안\s*함|미조정|조정\s*없음|불가|못\s*함/
 const WHOLE_TEAM_SKIP = /전체\s*미사용|팀\s*전체.*포기|도자기.*미사용|물레.*미사용|포기.*도자기|포기.*물레/
 
@@ -126,14 +126,15 @@ function evaluateC3(plan) {
     return { status: 'UNKNOWN', reason: '부정적 표현 감지 — 조정 여부 불명확' }
   }
 
+  // ⚠️ 미확정 표현은 POSITIVE_ADJUSTMENT보다 먼저 탐지 → PARTIAL
+  const PENDING = /예정|논의|검토|추후\s*결정|추후\s*확인|미정|확인\s*필요|결정\s*예정/
+  if (PENDING.test(combinedText)) {
+    return { status: 'PARTIAL', reason: '조정 예정/논의 중 언급 — 구체적 방식 미확정' }
+  }
+
   // 긍정 조정 표현
   if (POSITIVE_ADJUSTMENT.test(combinedText)) {
     return { status: 'PASS', reason: '참여 방식 조정 반영됨' }
-  }
-
-  // '예정'·'논의' → PARTIAL
-  if (combinedText.includes('예정') || combinedText.includes('논의')) {
-    return { status: 'PARTIAL', reason: '조정 예정 언급 — 구체적 방식 불명확' }
   }
 
   // 박준혁 언급만

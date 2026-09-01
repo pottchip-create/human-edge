@@ -65,14 +65,15 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
     <div style={{
       position: 'fixed', bottom: 0, left: 0, right: 0,
       zIndex: 1000, display: 'flex', flexDirection: 'column',
-      alignItems: 'center', pointerEvents: 'none'
+      alignItems: 'center', pointerEvents: 'none',
+      maxHeight: '100vh', overflowY: 'auto'
     }}>
       <div style={{ width: '100%', maxWidth: '960px', padding: '0 16px', pointerEvents: 'auto' }}>
 
         {/* 상황 사진 — 대화 시작 후에만, 상단 가로 꽉 차게 크게 */}
         {chatOpen && (
           <div style={{
-            width: '100%', height: '260px', overflow: 'hidden',
+            width: '100%', height: '175px', overflow: 'hidden',
             borderRadius: '20px 20px 0 0',
             border: `2px solid ${character.color}30`,
             borderBottom: 'none'
