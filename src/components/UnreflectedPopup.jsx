@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CHARACTERS } from '../data/characters'
 import { askCharacter } from '../api'
+import SafeBold from './SafeBold'
 
 export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
   const [currentIdx, setCurrentIdx] = useState(0)
@@ -34,7 +35,7 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
     setInput('')
     setLoadingMap(m => ({ ...m, [currentKey]: true }))
     try {
-      const data = await askCharacter(currentKey, newMessages, CHARACTERS)
+      const data = await askCharacter(currentKey, newMessages, turns)
       setMessagesMap(m => ({ ...m, [currentKey]: [...newMessages, { role: 'assistant', content: data.message }] }))
       setTurnsMap(m => ({ ...m, [currentKey]: turns + 1 }))
     } catch {
@@ -175,7 +176,7 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
                   borderRadius: m.role === 'user' ? '12px 4px 12px 12px' : '4px 12px 12px 12px',
                   maxWidth: '80%', fontSize: '0.88rem', lineHeight: '1.55'
                 }}>
-                  <span dangerouslySetInnerHTML={{ __html: m.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                  <SafeBold text={m.content} />
                 </div>
               ))}
               {loading && (

@@ -15,7 +15,7 @@ export default function EvaluateScreen({ currentPlan, conditionResults, onHumanE
   const handleHumanEdge = async () => {
     setLoading(true)
     try {
-      const data = await askHumanEdge(currentPlan, conditionResults, HUMANEDGE_SYSTEM)
+      const data = await askHumanEdge(currentPlan, conditionResults)
       onHumanEdge(data)
     } catch {
       alert('오류가 발생했습니다.')

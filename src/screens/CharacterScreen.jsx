@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CHARACTERS } from '../data/characters'
+import SafeBold from '../components/SafeBold'
 import { askCharacter } from '../api'
 
 export default function CharacterScreen({ clueId }) {
@@ -20,7 +21,7 @@ export default function CharacterScreen({ clueId }) {
     setInput('')
     setLoading(true)
     try {
-      const data = await askCharacter(clueId, newMessages, CHARACTERS)
+      const data = await askCharacter(clueId, newMessages, turns)
       setMessages([...newMessages, { role: 'assistant', content: data.message }])
       setTurns(t => t + 1)
     } catch (e) {
@@ -83,7 +84,7 @@ export default function CharacterScreen({ clueId }) {
               maxWidth: '82%', fontSize: '0.88rem', lineHeight: '1.6',
               borderRadius: m.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px'
             }}>
-              <span dangerouslySetInnerHTML={{ __html: m.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+              <SafeBold text={m.content} />
             </div>
           ))}
           {loading && (

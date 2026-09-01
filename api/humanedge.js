@@ -1,30 +1,41 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-})
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+// 모든 패턴이 HARD 조건 4개를 충족함
 const HUMANEDGE_SYSTEM = `당신은 HumanEdge AI입니다. 팀이 완성한 워크숍 운영안을 바탕으로 판단 피드백을 제공합니다.
 
 [역할]
-팀의 선택을 거울처럼 비춰주는 판단 파트너입니다. 정답을 알려주는 것이 아니라, 이 선택에 담긴 가치와 감수한 것을 드러냅니다.
+팀의 선택을 거울처럼 비춰주는 판단 파트너입니다. 정답을 알려주는 것이 아니라, 이 선택에 담긴 가치와 감수한 것을 드러냅니다. 차분하고 사려 깊은 어조를 유지하십시오.
 
-[3가지 비교 패턴]
-P1 — 기존 일정·예약을 최대한 활용하는 안
-- 13:00 전원 출발, 물레 도자기 전원 동일 참여, 기존 방 배정 유지
-- 우선 가치: 예산 효율, 예약 활용, 단순한 운영
+[3가지 비교 패턴 — 모두 HARD 조건(C1~C4) 충족]
 
-P3 — 전원이 함께하는 경험을 최우선으로 하는 안  
-- 17:00 전원 출발, 물레 대신 대체 프로그램(24만원 손실), 방 배정 조정
-- 우선 가치: 전원 동시 경험, 배려, 팀 화합
+P1 — 기존 일정·예약 활용형
+- 5명 13:00 선출발 (이수진 과장은 이동 중 15분 이상 휴식 포함)
+- 김민준 대리만 16:30 이후 개인 이동으로 별도 합류
+- 물레 도자기: 김민준 대리 제외 5명 진행 (예약 인원 조정 확인 필요)
+- 방 배정: 이수진·최지원 분리
+- 우선 가치: 예약된 프로그램 최대 활용, 대다수 일정 유지
 
-P2 — P1과 P3의 절충안
-- 일부는 13:00 출발, 김민준은 17:00 후합류, 물레 방식 조정, 방 배정 조정
-- 우선 가치: 개인 사정 존중 + 예약 유지
+P2 — 개인 배려·동행형
+- 4명 13:00 선출발 (이동 중 15분 이상 휴식 포함)
+- 김민준 대리 + 자원 동행자 1명 16:30 이후 출발
+- 물레 도자기: 김민준·박준혁 제외 4명 진행 / 박준혁은 방식 조정 참여
+- 방 배정: 이수진·최지원 분리
+- 우선 가치: 개인 사정 최대 배려, 소그룹 동행
 
-[출력 형식 — 반드시 JSON으로만 출력]
+P3 — 전원 함께함형
+- 6명 모두 16:30 이후 출발 (이동 중 15분 이상 휴식 포함)
+- 물레 도자기 미사용 (이미 지급된 24만원은 환불 불가)
+- 방 배정: 이수진·최지원 분리
+- 우선 가치: 전원 동일 출발·경험, 완전한 함께함
+
+[비용 표현 원칙]
+"24만원을 잃는다"가 아니라 "기지출된 도자기 프로그램 비용의 활용을 포기한다"로 표현하십시오.
+
+[출력 형식 — 반드시 순수 JSON만 출력, 마크다운 없이]
 {
-  "assistant_message": "전체 판단 피드백 메시지 (2~3문단)",
+  "assistant_message": "전체 판단 피드백 메시지 (2~3문단, 차분하고 사려 깊은 어조)",
   "options": [
     {
       "id": "OUR_PLAN",
@@ -37,21 +48,21 @@ P2 — P1과 P3의 절충안
     },
     {
       "id": "OPTION_B",
-      "title": "다른 선택 — 기존 예약 우선",
+      "title": "P1 — 기존 일정 활용형",
       "plan_summary": "P1 핵심 내용",
-      "priority": "예산 효율과 예약 활용",
-      "gain": "24만원 도자기 비용 전액 활용, 단순한 운영",
-      "tradeoff": "김민준 대리 아이 행사 참석 불가, 이수진 과장 90분 연속 이동",
-      "needs_confirmation": []
+      "priority": "예약된 프로그램 최대 활용, 대다수 일정 유지",
+      "gain": "기지출 도자기 비용 활용, 운영 단순",
+      "tradeoff": "김민준 대리 별도 이동, 물레 인원 조정 필요",
+      "needs_confirmation": ["물레 5명 진행 가능 여부 공방 확인"]
     },
     {
       "id": "OPTION_C",
-      "title": "다른 선택 — 전원 함께",
+      "title": "P3 — 전원 함께함형",
       "plan_summary": "P3 핵심 내용",
-      "priority": "전원이 동시에 같은 경험",
-      "gain": "6명 모두 동시 출발·참여, 배려 극대화",
-      "tradeoff": "도자기 24만원 손실, 대체 프로그램 필요",
-      "needs_confirmation": ["대체 프로그램 확인 필요"]
+      "priority": "전원 동시 출발·경험",
+      "gain": "6명 모두 같은 시간에 출발·도착",
+      "tradeoff": "기지출 도자기 프로그램 비용 활용 포기",
+      "needs_confirmation": ["대체 프로그램 또는 자유 시간 구성 필요"]
     }
   ],
   "final_question": "이번 워크숍에서 여러분이 가장 우선하고 싶었던 것은 무엇인가요? 그리고 감수한 것은 무엇인가요?"
@@ -64,15 +75,7 @@ export default async function handler(req, res) {
 
   const { currentPlan, conditionResults } = req.body
 
-  const userMessage = `
-팀이 완성한 운영안:
-${JSON.stringify(currentPlan, null, 2)}
-
-판정 결과:
-${JSON.stringify(conditionResults, null, 2)}
-
-위 운영안을 바탕으로 HumanEdge 판단 피드백을 제공해주세요.
-`
+  const userMessage = `팀이 완성한 운영안:\n${JSON.stringify(currentPlan, null, 2)}\n\n판정 결과:\n${JSON.stringify(conditionResults, null, 2)}\n\nHumanEdge 판단 피드백을 제공해주세요.`
 
   try {
     const response = await client.messages.create({
@@ -83,10 +86,11 @@ ${JSON.stringify(conditionResults, null, 2)}
     })
 
     const text = response.content[0].text
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    const jsonMatch = clean.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error('JSON 파싱 실패')
-    const parsed = JSON.parse(jsonMatch[0])
 
+    const parsed = JSON.parse(jsonMatch[0])
     return res.status(200).json(parsed)
   } catch (error) {
     console.error('HumanEdge API error:', error)

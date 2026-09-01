@@ -3,11 +3,11 @@ import { FIXED_CONSTRAINTS } from '../data/constraints'
 import { askPlan } from '../api'
 import { evaluatePlan } from '../evaluate'
 import UnreflectedPopup from '../components/UnreflectedPopup'
+import SafeBold from '../components/SafeBold'
 
 const PLAN_SYSTEM = `당신은 팀 워크숍 운영안을 조율하는 AI입니다.
 
 [팀 구성 — 이름과 직급을 정확히 사용하십시오]
-- 오준혁 팀장
 - 이수진 과장
 - 윤서현 과장
 - 김민준 대리
@@ -50,7 +50,7 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
     setInput('')
     setLoading(true)
     try {
-      const data = await askPlan(newHistory, currentPlan, PLAN_SYSTEM)
+      const data = await askPlan(newHistory, currentPlan)
       if (data.current_plan) setCurrentPlan(data.current_plan)
       const reply = data.assistant_message || '처리했습니다.'
       setMessages(prev => [...prev, { role: 'assistant', content: reply, display: reply }])
@@ -224,7 +224,7 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
                 maxWidth: '85%', fontSize: '0.88rem', lineHeight: '1.6',
                 whiteSpace: 'pre-wrap'
               }}>
-                <span dangerouslySetInnerHTML={{ __html: m.display.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                <SafeBold text={m.display} />
               </div>
             ))}
             {loading && (
