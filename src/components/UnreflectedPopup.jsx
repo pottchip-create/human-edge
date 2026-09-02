@@ -114,12 +114,14 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
             borderRadius: '20px 20px 0 0',
             border: `2px solid ${character.color}30`,
             borderBottom: 'none',
-            overflow: 'hidden'   // border-radius 적용용, 높이 제한 없음
+            background: 'var(--bg)',
+            display: 'flex',
+            justifyContent: 'center'
           }}>
             <img
               src={character.situationImage}
               alt={`${character.name} 상황`}
-              style={{ width: '100%', height: 'auto', display: 'block' }}
+              style={{ width: '70%', height: 'auto', display: 'block' }}
               onError={e => { e.target.parentElement.style.display = 'none' }}
             />
           </div>
