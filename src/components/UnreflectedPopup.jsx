@@ -114,8 +114,7 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
             borderRadius: '20px 20px 0 0',
             border: `2px solid ${character.color}30`,
             borderBottom: 'none',
-            overflow: 'hidden',
-            maxHeight: '40vh'   // 화면 절반 이하로 제한
+            overflow: 'hidden'   // border-radius 적용용, 높이 제한 없음
           }}>
             <img
               src={character.situationImage}
