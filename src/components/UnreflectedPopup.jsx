@@ -110,15 +110,17 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
         {/* 상황 사진 — 대화 시작 후에만 표시 */}
         {chatOpen && (
           <div style={{
-            width: '100%', height: '160px', overflow: 'hidden',
+            width: '100%',
             borderRadius: '20px 20px 0 0',
             border: `2px solid ${character.color}30`,
-            borderBottom: 'none'
+            borderBottom: 'none',
+            overflow: 'hidden',
+            maxHeight: '40vh'   // 화면 절반 이하로 제한
           }}>
             <img
               src={character.situationImage}
               alt={`${character.name} 상황`}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
+              style={{ width: '100%', height: 'auto', display: 'block' }}
               onError={e => { e.target.parentElement.style.display = 'none' }}
             />
           </div>
