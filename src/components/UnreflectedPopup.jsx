@@ -95,17 +95,22 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
 
   return (
     <div style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0,
-      zIndex: 1000, display: 'flex', flexDirection: 'column',
-      alignItems: 'center', pointerEvents: 'none',
-      maxHeight: '100vh', overflowY: 'auto'
+      position: 'fixed', inset: 0,
+      zIndex: 1000,
+      // 팝업 내용이 길어도 위에서부터 보이도록 오버레이 전체를 스크롤
+      overflowY: 'auto',
+      display: 'flex', flexDirection: 'column',
+      justifyContent: 'flex-end',   // 기본은 하단 정렬
+      alignItems: 'center',
+      pointerEvents: 'none',
+      paddingTop: '40px'  // 사진 상단이 화면 상단에 너무 붙지 않도록 여유
     }}>
       <div style={{ width: '100%', maxWidth: '960px', padding: '0 16px', pointerEvents: 'auto' }}>
 
-        {/* 상황 사진 — 대화 시작 후에만, 상단 가로 꽉 차게 크게 */}
+        {/* 상황 사진 — 대화 시작 후에만 표시 */}
         {chatOpen && (
           <div style={{
-            width: '100%', height: '175px', overflow: 'hidden',
+            width: '100%', height: '160px', overflow: 'hidden',
             borderRadius: '20px 20px 0 0',
             border: `2px solid ${character.color}30`,
             borderBottom: 'none'
@@ -113,7 +118,7 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
             <img
               src={character.situationImage}
               alt={`${character.name} 상황`}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
               onError={e => { e.target.parentElement.style.display = 'none' }}
             />
           </div>
