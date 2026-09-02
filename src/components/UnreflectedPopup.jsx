@@ -38,17 +38,49 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
 
   const sendMessage = async () => {
     if (!input.trim() || loading || turns >= MAX_TURNS) return
+    // isError를 제거한 정상 history에 user 질문 추가
+    const cleanMessages = (messages || []).filter(m => !m.isError)
     const userMsg = { role: 'user', content: input }
-    const newMessages = [...messages, userMsg]
-    setMessagesMap(m => ({ ...m, [currentKey]: newMessages }))
+    const newMessages = [...cleanMessages, userMsg]
+    const savedInput = input
     setInput('')
     setLoadingMap(m => ({ ...m, [currentKey]: true }))
     try {
       const data = await askCharacter(currentKey, newMessages, turns)
+      if (data.error) {
+        // 오류: 실패한 user 질문은 history에 남기지 않음
+        // cleanMessages만 유지하고 오류 안내만 표시
+        setMessagesMap(m => ({
+          ...m,
+          [currentKey]: [
+            ...cleanMessages,
+            {
+              role: 'assistant',
+              content: '응답이 조금 지연되고 있습니다.\n질문 횟수는 차감되지 않았습니다. 다시 시도해주세요.',
+              isError: true
+            }
+          ]
+        }))
+        setInput(savedInput)
+        return
+      }
+      // 성공: 정상 history에 저장 + turns +1
       setMessagesMap(m => ({ ...m, [currentKey]: [...newMessages, { role: 'assistant', content: data.message }] }))
       setTurnsMap(m => ({ ...m, [currentKey]: turns + 1 }))
     } catch {
-      setMessagesMap(m => ({ ...m, [currentKey]: [...newMessages, { role: 'assistant', content: '오류가 발생했습니다.' }] }))
+      // 오류: 동일 처리 — 실패한 user 질문 미포함
+      setMessagesMap(m => ({
+        ...m,
+        [currentKey]: [
+          ...cleanMessages,
+          {
+            role: 'assistant',
+            content: '응답이 조금 지연되고 있습니다.\n질문 횟수는 차감되지 않았습니다. 다시 시도해주세요.',
+            isError: true
+          }
+        ]
+      }))
+      setInput(savedInput)
     } finally {
       setLoadingMap(m => ({ ...m, [currentKey]: false }))
     }
@@ -233,7 +265,7 @@ export default function UnreflectedPopup({ unreflectedKeys, onClose }) {
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="질문을 입력하세요… (Shift+Enter 줄바꿈)"
+                  placeholder="질문을 입력하세요…"
                   rows={1}
                   style={{
                     flex: 1, padding: '9px 14px', borderRadius: '16px',

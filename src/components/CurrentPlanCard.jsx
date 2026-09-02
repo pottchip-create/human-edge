@@ -20,7 +20,7 @@ export default function CurrentPlanCard({ plan, mode = 'live', highlightKeys = [
   const isHL = (key) => highlighted.includes(key)
 
   const hlStyle = (key) => isHL(key)
-    ? { background: '#FFF0EC', transition: 'background 0.3s ease', borderRadius: '8px', padding: '4px 6px', margin: '-4px -6px' }
+    ? { background: 'var(--accent-soft)', transition: 'background 0.3s ease', borderRadius: '8px', padding: '4px 6px', margin: '-4px -6px' }
     : {}
 
   if (!plan) return null
@@ -119,15 +119,15 @@ export default function CurrentPlanCard({ plan, mode = 'live', highlightKeys = [
 
       {/* program_notes */}
       {plan.program_notes && (
-        <div style={{ padding: '8px 10px', background: '#EFF6FF', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '8px', color: '#1E40AF' }}>
+        <div style={{ padding: '8px 10px', background: 'var(--accent-soft)', borderRadius: '8px', fontSize: '0.82rem', marginBottom: '8px', color: 'var(--accent-deep)' }}>
           {plan.program_notes}
         </div>
       )}
 
       {/* 미확정 */}
       {(plan.unconfirmed || []).length > 0 && (
-        <div style={{ padding: '8px 10px', background: '#FEFCE8', borderRadius: '8px', fontSize: '0.82rem', color: '#92400E' }}>
-          ⏳ 미확정: {plan.unconfirmed.map(u =>
+        <div style={{ padding: '8px 10px', background: '#FDF6E8', borderRadius: '8px', fontSize: '0.82rem', color: '#8A6A1F' }}>
+          미확정: {plan.unconfirmed.map(u =>
             typeof u === 'string' ? u : (u.item || u.description || JSON.stringify(u))
           ).join(', ')}
         </div>

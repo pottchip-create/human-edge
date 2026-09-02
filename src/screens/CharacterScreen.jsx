@@ -22,17 +22,43 @@ export default function CharacterScreen({ clueId }) {
 
   const sendMessage = async () => {
     if (!input.trim() || loading || turns >= MAX_TURNS) return
+    // isError를 제거한 정상 history에 user 질문 추가
+    const cleanMessages = messages.filter(m => !m.isError)
     const userMsg = { role: 'user', content: input }
-    const newMessages = [...messages, userMsg]
-    setMessages(newMessages)
+    const newMessages = [...cleanMessages, userMsg]
+    const savedInput = input
     setInput('')
     setLoading(true)
     try {
       const data = await askCharacter(clueId, newMessages, turns)
+      if (data.error) {
+        // 오류: 실패한 user 질문은 history에 남기지 않음
+        // cleanMessages만 유지하고 오류 안내만 표시
+        setMessages([
+          ...cleanMessages,
+          {
+            role: 'assistant',
+            content: '응답이 조금 지연되고 있습니다.\n질문 횟수는 차감되지 않았습니다. 다시 시도해주세요.',
+            isError: true
+          }
+        ])
+        setInput(savedInput)
+        return
+      }
+      // 성공: 정상 history에 저장 + turns +1
       setMessages([...newMessages, { role: 'assistant', content: data.message }])
       setTurns(t => t + 1)
     } catch (e) {
-      setMessages([...newMessages, { role: 'assistant', content: '오류가 발생했습니다.' }])
+      // 오류: 동일 처리 — 실패한 user 질문 미포함
+      setMessages([
+        ...cleanMessages,
+        {
+          role: 'assistant',
+          content: '응답이 조금 지연되고 있습니다.\n질문 횟수는 차감되지 않았습니다. 다시 시도해주세요.',
+          isError: true
+        }
+      ])
+      setInput(savedInput)
     } finally {
       setLoading(false)
     }
@@ -60,7 +86,7 @@ export default function CharacterScreen({ clueId }) {
           <img
             src={character.situationImage}
             alt={`${character.name} 상황`}
-            style={{ width: '100%', display: 'block', objectFit: 'cover', height: '240px' }}
+            style={{ width: '100%', display: 'block', objectFit: 'cover', height: '280px' }}
             onError={e => { e.target.parentElement.style.display = 'none' }}
           />
         </div>
@@ -72,7 +98,7 @@ export default function CharacterScreen({ clueId }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '36px', height: '36px', borderRadius: '50%',
-              background: 'var(--accent)', color: 'white',
+              background: 'var(--accent-soft)', color: 'var(--accent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '0.9rem', fontWeight: '700', flexShrink: 0
             }}>
@@ -108,7 +134,7 @@ export default function CharacterScreen({ clueId }) {
         {messages.map((m, i) => (
           <div key={i} style={{
             alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-            background: m.role === 'user' ? 'var(--accent)' : 'white',
+            background: m.role === 'user' ? 'var(--accent)' : 'var(--card)',
             color: m.role === 'user' ? 'white' : 'var(--text-primary)',
             padding: '10px 14px',
             borderRadius: m.role === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px',
@@ -153,7 +179,7 @@ export default function CharacterScreen({ clueId }) {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="질문을 입력하세요… (Shift+Enter 줄바꿈)"
+              placeholder="질문을 입력하세요…"
               rows={1}
               disabled={loading}
               style={{
@@ -168,7 +194,7 @@ export default function CharacterScreen({ clueId }) {
               onClick={sendMessage}
               disabled={loading || !input.trim()}
               style={{
-                background: 'var(--accent)', color: 'white', border: 'none',
+                background: 'var(--accent-soft)', color: 'var(--accent)', border: 'none',
                 borderRadius: '100px', padding: '10px 18px',
                 fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit',
                 fontSize: '0.88rem', flexShrink: 0,

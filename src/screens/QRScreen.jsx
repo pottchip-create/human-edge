@@ -14,7 +14,8 @@ export default function QRScreen({ onNext }) {
   return (
     <div className="page fade-in" style={{ textAlign: 'center' }}>
       <div style={{ marginBottom: '40px' }}>
-        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--accent)', letterSpacing: '0.1em' }}>STEP 3</span>
+        <span className="step-brand">HUMAN EDGE · 사수의 결재판</span>
+        <span className="step-label">STEP 3 · 팀원 상황 확인</span>
         <h2 style={{ marginTop: '8px', marginBottom: '8px' }}>각자 팀원을 탐색해보세요</h2>
         <p>하나씩 맡아서 스캔하세요. 탐색을 마치면 돌아와 함께 조율을 시작합니다.</p>
       </div>
@@ -43,7 +44,7 @@ export default function QRScreen({ onNext }) {
       </div>
 
       <p style={{ marginBottom: '24px', fontSize: '0.9rem' }}>탐색을 모두 마쳤나요?</p>
-      <button className="btn-primary" onClick={onNext}>모두 확인했습니다 →</button>
+      <button className="btn-primary" onClick={onNext}>AI와 조율하러 가기 →</button>
     </div>
   )
 }

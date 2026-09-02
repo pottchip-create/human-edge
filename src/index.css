@@ -7,15 +7,22 @@
 }
 
 :root {
-  --bg: #F5F5F2;
+  /* A안 웜 미니멀 — 크림 베이스 + 코랄 포인트 1색 */
+  --bg: #FAF8F5;
   --card: #FFFFFF;
-  --text-primary: #111318;
-  --text-secondary: #6B7280;
-  --text-muted: #9CA3AF;
-  --line: #E5E7EB;
-  --accent: #F45A2A;
-  --accent-hover: #D94E22;
-  --accent-soft: #FFF4F0;
+  --text-primary: #26221C;
+  --text-secondary: #6B655C;
+  --text-muted: #A89684;
+  --line: #E8E2D9;
+  --accent: #C0553A;
+  --accent-hover: #A5462F;
+  --accent-soft: #FBEDE8;
+  --accent-deep: #8A3D26;
+  /* B안 서류 액센트 — Intro·결재·디브리핑에만 사용 */
+  --paper: #FCFBF7;
+  --paper-line: #E2DCCF;
+  --ink: #4A443C;
+  --ink-deep: #3A352E;
   --blue-soft: #EFF6FF;
   --blue: #3B82F6;
   --green-soft: #F0FDF4;
@@ -27,9 +34,9 @@
   --radius-sm: 12px;
   --radius-md: 20px;
   --radius-lg: 28px;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-lg: 0 12px 32px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 2px rgba(74,68,60,0.04);
+  --shadow-md: 0 2px 8px rgba(74,68,60,0.06);
+  --shadow-lg: 0 8px 24px rgba(74,68,60,0.08);
 }
 
 body {
@@ -53,10 +60,8 @@ p  { font-size: 1rem; color: var(--text-secondary); }
   padding: 32px;
 }
 
-.card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-  transition: all 0.2s ease;
+.card {
+  transition: border-color 0.2s ease;
 }
 
 .btn-primary {
@@ -141,4 +146,43 @@ p  { font-size: 1rem; color: var(--text-secondary); }
 }
 .card > div::-webkit-scrollbar-thumb:hover {
   background: #9CA3AF;
+}
+
+/* ── 공통 STEP 라벨 체계 (STEP 1~5 통일) ───────────── */
+.step-header {
+  margin-bottom: 32px;
+}
+.step-brand {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.14em;
+  margin-bottom: 6px;
+}
+.step-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+.step-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 10px;
+}
+.step-desc {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+.section-sub {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
 }

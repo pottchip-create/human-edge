@@ -35,19 +35,30 @@ export default async function handler(req, res) {
   // 공통 규칙은 항상 포함, 마지막 턴에만 강제 공개 추가
   const systemPrompt = character.systemPrompt + COMMON_RULES + (isLastTurn ? LAST_TURN_RULE : '')
 
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 22000)
+
   try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 300,
-      system: systemPrompt,
-      messages
-    })
+    const response = await client.messages.create(
+      {
+        model: 'claude-sonnet-4-6',
+        max_tokens: 300,
+        system: systemPrompt,
+        messages
+      },
+      { signal: controller.signal, timeout: 22000, maxRetries: 0 }
+    )
 
     return res.status(200).json({
       message: response.content[0].text
     })
   } catch (error) {
-    console.error('Character API error:', error)
-    return res.status(500).json({ error: 'AI 호출에 실패했습니다.' })
+    console.error('Character API error:', error?.name, error?.message)
+    const msg = error?.name === 'AbortError'
+      ? '응답이 지연되었습니다. 다시 시도해주세요.'
+      : 'AI 호출에 실패했습니다. 잠시 후 다시 시도해주세요.'
+    return res.status(200).json({ error: msg, message: msg })
+  } finally {
+    clearTimeout(timer)
   }
 }

@@ -55,10 +55,14 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
         setCurrentPlan(np)
         if (changed.length > 0) setHighlightKeys(changed)
       }
-      const reply = data.assistant_message || '처리했습니다.'
+      // clarifying_question이 assistant_message에 없으면 자연스럽게 합침
+      let reply = data.assistant_message || '처리했습니다.'
+      if (data.clarifying_question && !reply.includes(data.clarifying_question.slice(0, 10))) {
+        reply = reply.trimEnd() + '\n\n' + data.clarifying_question
+      }
       setMessages(prev => [...prev, { role: 'assistant', content: reply, display: reply }])
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: '오류가 발생했습니다. 로컬 개발 시에는 vercel dev로 실행하거나 배포된 URL에서 테스트해주세요.', display: '오류가 발생했습니다. 로컬 개발 시에는 vercel dev로 실행하거나 배포된 URL에서 테스트해주세요.' }])
+      setMessages(prev => [...prev, { role: 'assistant', content: '응답이 지연되었습니다. 현재 운영안은 그대로 유지됩니다. 잠시 후 다시 시도해주세요.', display: '응답이 지연되었습니다. 현재 운영안은 그대로 유지됩니다. 잠시 후 다시 시도해주세요.' }])
     } finally {
       setLoading(false)
     }
@@ -92,7 +96,8 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
     }}>
       {/* 헤더 */}
       <div style={{ padding: '20px 40px 12px', flexShrink: 0 }}>
-        <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--accent)', letterSpacing: '0.1em' }}>STEP 4</span>
+        <span className="step-brand">HUMAN EDGE · 사수의 결재판</span>
+        <span className="step-label">STEP 4 · AI와 조율하기</span>
         <h2 style={{ marginTop: '4px', marginBottom: '0' }}>운영안 조율</h2>
       </div>
 
@@ -117,7 +122,7 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
             padding: '18px',
             minHeight: 0
           }}>
-            <h3 style={{ marginBottom: '12px', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.05em', flexShrink: 0 }}>CURRENT PLAN</h3>
+            <div className="section-sub" style={{ flexShrink: 0 }}>CURRENT PLAN</div>
             <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
               <CurrentPlanCard plan={currentPlan} mode="live" highlightKeys={highlightKeys} />
             </div>
@@ -127,7 +132,7 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
           <div className="card" style={{ background: 'var(--accent-soft)', border: '1px solid #F45A2A30', padding: '12px 14px', flexShrink: 0 }}>
             <div style={{ fontSize: '0.78rem', fontWeight: '600', marginBottom: '4px' }}>⚠️ 고정 조건</div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-              총예산 {FIXED_CONSTRAINTS.totalBudget}만원 · 도자기 클래스 취소 시 24만원 청구
+              총예산 {FIXED_CONSTRAINTS.totalBudget}만원 / 도자기 사용하지 않아도 24만원 비용 발생
             </div>
           </div>
 
@@ -142,7 +147,7 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
                 textAlign: 'left', flexShrink: 0
               }}
             >
-              💬 미반영 인물 다시 확인하기
+              미반영 인물 다시 확인하기
             </button>
           )}
         </div>
@@ -154,7 +159,7 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
           padding: '18px',
           minHeight: 0
         }}>
-          <h3 style={{ marginBottom: '10px', fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.05em', flexShrink: 0 }}>AI와 조율하기</h3>
+          <div className="section-sub" style={{ flexShrink: 0 }}>AI와 조율하기</div>
 
           {showPopup && (
             <div style={{
@@ -163,7 +168,7 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
               fontSize: '0.83rem', color: '#92400E',
               marginBottom: '10px', flexShrink: 0
             }}>
-              💬 먼저 아래 인물과 대화를 마친 후 입력해주세요.
+              먼저 아래 인물과 대화를 마친 후 입력해주세요.
             </div>
           )}
 
@@ -210,7 +215,7 @@ export default function WorkbenchScreen({ currentPlan, setCurrentPlan, messages,
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={showPopup ? '아래 인물과 대화 후 입력해주세요' : '팀원의 상황을 입력하세요… (Shift+Enter 줄바꿈)'}
+                placeholder={showPopup ? '아래 인물과 대화 후 입력해주세요' : '팀원의 상황을 입력하세요…'}
                 disabled={showPopup}
                 rows={1}
                 style={{
