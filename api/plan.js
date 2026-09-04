@@ -52,7 +52,14 @@ const PLAN_SYSTEM = `당신은 팀 워크숍 운영안을 조율하는 AI입니�
 
 13. 응답은 반드시 아래 JSON 형식으로만 출력하십시오. 마크다운 코드블록 없이 순수 JSON만 출력하십시오.
 
+[이름 표기 규칙]
+rooms와 transport_groups의 인물 이름은 반드시 "이름 직급" 형태로 정확히 쓰십시오.
+올바름: "김민준 대리", "이수진 과장", "윤서현 팀장", "박준혁 주임", "최지원 대리", "장미래 대리"
+틀림: "김민준", "민준 대리", "김 대리"
+
 [transport_groups 스키마 — 이동 그룹이 있을 때 사용]
+출발 그룹이 나뉘면 6명 전원을 그룹에 배치하는 것이 가장 좋습니다.
+예: 김민준 대리만 늦게 출발한다면 나머지 5명 그룹과 김민준 그룹 2개를 만드십시오.
 {
   "id": "G1",
   "participants": ["이름"],
@@ -73,7 +80,26 @@ const GENDER = {
 }
 const ALLOWED_MEMBERS = Object.keys(GENDER)
 
+// ── 이름 정규화 ─────────────────────────────────────────────
+// AI가 '김민준' / '김민준 대리' / '김민준대리' 등으로 섞어 써도 동일 인물로 인식
+const SURNAME_MAP = {
+  '윤서현': '윤서현 팀장', '이수진': '이수진 과장', '최지원': '최지원 대리',
+  '장미래': '장미래 대리', '김민준': '김민준 대리', '박준혁': '박준혁 주임'
+}
+function normalizeMember(name) {
+  if (typeof name !== 'string') return null
+  const t = name.trim()
+  if (GENDER[t]) return t                       // 이미 정식 표기
+  for (const key of Object.keys(SURNAME_MAP)) { // 이름만 있거나 표기가 다른 경우
+    if (t.includes(key)) return SURNAME_MAP[key]
+  }
+  return null                                   // 알 수 없는 인물
+}
+
 // ── validatePlan — 구조적 유효성만 (숨은 조건 C4 제외) ──────
+// ⚠️ 최소 수정 원칙과 충돌하지 않도록 느슨하게 검증한다.
+//    AI가 참가자 입력과 관련된 부분만 수정해도 통과해야 한다.
+//    의미적 옳고 그름(C1~C4)은 evaluate.js가 판단한다.
 function validatePlan(plan) {
   if (!plan || typeof plan !== 'object') return false
 
@@ -84,40 +110,58 @@ function validatePlan(plan) {
     if (!item.time || !item.activity) return false
   }
 
-  // rooms: 정확히 3개, 각 방 2명, 동성, 허용 인물, 중복 없음
+  // rooms: 3개, 각 방 2명, 동성, 6명 중복 없음 (이름 표기는 정규화 후 비교)
   if (!Array.isArray(plan.rooms) || plan.rooms.length !== 3) return false
   const allMembers = []
   for (const room of plan.rooms) {
     if (!Array.isArray(room.members) || room.members.length !== 2) return false
-    const [a, b] = room.members
-    if (!ALLOWED_MEMBERS.includes(a) || !ALLOWED_MEMBERS.includes(b)) return false
-    if (GENDER[a] !== GENDER[b]) return false  // 동성 객실
+    const a = normalizeMember(room.members[0])
+    const b = normalizeMember(room.members[1])
+    if (!a || !b) return false                  // 알 수 없는 인물
+    if (GENDER[a] !== GENDER[b]) return false   // 동성 객실
     allMembers.push(a, b)
   }
   if (allMembers.length !== 6 || new Set(allMembers).size !== 6) return false
 
   if (typeof plan.transport !== 'string') return false
 
-  // transport_groups: 사용 시 6인 완결성 검증
+  // transport_groups: 구조만 확인
+  // ⚠️ '6명 전원 포함'을 요구하지 않는다.
+  //    최소 수정 원칙에 따라 AI가 김민준 그룹만 추가할 수 있기 때문.
   if (plan.transport_groups && Array.isArray(plan.transport_groups)) {
-    const tgAll = []
     for (const g of plan.transport_groups) {
       if (!Array.isArray(g.participants) || g.participants.length === 0) return false
       if (!g.depart_time) return false
+      // 유령 인물만 차단 (정규화 후에도 매칭 안 되면 거부)
       for (const p of g.participants) {
-        if (!ALLOWED_MEMBERS.includes(p)) return false  // 유령 인물 차단
-        tgAll.push(p)
+        if (!normalizeMember(p)) return false
       }
     }
-    // 6명 정확히 한 번씩
-    if (tgAll.length !== 6 || new Set(tgAll).size !== 6) return false
   }
 
   return true
 }
 
+// 통과한 plan의 인물 표기를 정식 명칭으로 통일 (판정·요약 일관성 확보)
+function normalizePlanNames(plan) {
+  if (!plan) return plan
+  if (Array.isArray(plan.rooms)) {
+    plan.rooms = plan.rooms.map(r => ({
+      ...r,
+      members: (r.members || []).map(m => normalizeMember(m) || m)
+    }))
+  }
+  if (Array.isArray(plan.transport_groups)) {
+    plan.transport_groups = plan.transport_groups.map(g => ({
+      ...g,
+      participants: (g.participants || []).map(p => normalizeMember(p) || p)
+    }))
+  }
+  return plan
+}
+
 // ── timeout 예산 ─────────────────────────────────────────────
-const FIRST_TIMEOUT_MS  = 22000   // 1차
+const FIRST_TIMEOUT_MS  = 20000   // 1차
 const REPAIR_TIMEOUT_MS = 8000    // repair (합산 30초 < 프런트 35초)
 
 function isExternalError(err) {
@@ -193,10 +237,17 @@ export default async function handler(req, res) {
         return res.status(200).json(makeFallback(currentPlan, '응답이 지연되어 이전 운영안을 유지합니다.'))
       }
     }
-    if (parsed && validatePlan(parsed.current_plan)) return res.status(200).json(parsed)
+    if (parsed && validatePlan(parsed.current_plan)) {
+      parsed.current_plan = normalizePlanNames(parsed.current_plan)
+      return res.status(200).json(parsed)
+    }
+    if (parsed) console.error('[plan] 1차 validate 실패:', JSON.stringify(parsed.current_plan)?.slice(0, 400))
 
     try { repaired = await repairAI(system, messages) } catch { /* repair 실패 */ }
-    if (repaired && validatePlan(repaired.current_plan)) return res.status(200).json(repaired)
+    if (repaired && validatePlan(repaired.current_plan)) {
+      repaired.current_plan = normalizePlanNames(repaired.current_plan)
+      return res.status(200).json(repaired)
+    }
 
     const aiMsg = repaired?.assistant_message || parsed?.assistant_message || ''
     return res.status(200).json(makeFallback(currentPlan,
