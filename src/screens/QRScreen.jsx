@@ -8,8 +8,9 @@ export default function QRScreen({ onNext }) {
     { id: 'd', label: 'D', color: '#8A5A8A' },
   ]
 
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '172.30.1.87'
-  const baseUrl = isLocal ? 'http://172.30.1.87:5173' : window.location.origin
+  // 배포·로컬 모두 현재 접속 주소를 그대로 사용
+  // (로컬에서 모바일 테스트 시 npm run dev -- --host 로 실행 후 표시된 IP로 접속)
+  const baseUrl = window.location.origin
 
   return (
     <div className="page fade-in" style={{ textAlign: 'center' }}>

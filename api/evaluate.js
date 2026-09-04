@@ -36,9 +36,20 @@ function evaluateC1(plan) {
   }
 
   const day1 = plan.day1 || []
-  const kimDep = day1.find(e => e.activity?.includes('김민준') && e.activity?.includes('출발'))
+  // 김민준 전용 항목 탐색 — 출발뿐 아니라 합류·후발·별도이동 표현도 인식
+  // HARD 조건: "16:30 이후 출발 또는 후합류 명시"
+  const KIM_MOVE = /출발|합류|후발|별도\s*이동|따로\s*이동|나중에\s*이동|이동/
+  const kimDep = day1.find(e =>
+    e.activity?.includes('김민준') && KIM_MOVE.test(e.activity || '')
+  )
   if (kimDep) {
     const time = kimDep.time
+    const act = kimDep.activity || ''
+    // '합류'는 도착 시각이므로 16:30 출발 비교 대상이 아님 → 별도 합류 자체가 조건 충족
+    const isJoinOnly = /합류/.test(act) && !/출발/.test(act)
+    if (isJoinOnly) {
+      return { status: 'PASS', reason: `김민준 대리 ${time} 별도 합류 — 조건 충족` }
+    }
     if (time >= '16:30') return { status: 'PASS', reason: `김민준 대리 ${time} 출발 — 조건 충족` }
     return { status: 'FAIL', reason: `김민준 대리 ${time} 출발 — 16:30 이전` }
   }
@@ -80,10 +91,22 @@ function evaluateC2(plan) {
   const day1 = plan.day1 || []
   const day2 = plan.day2 || []
 
+  // program_notes를 출발/복귀 구간으로 귀속
+  // 금요일 휴식이 토요일 판정에 재사용되지 않도록 날짜 키워드로 분리
+  const noteSentences = notes.split(/[.。\n]/).map(s => s.trim()).filter(Boolean)
+  const restSentences = noteSentences.filter(s => /휴식|정차|휴게소|쉬어|쉬기/.test(s))
+  const OUTBOUND_WORD = /금요일|금\s*요일|출발|가는\s*길|갈\s*때|1일차|첫날/
+  const RETURN_WORD   = /토요일|토\s*요일|복귀|돌아|오는\s*길|올\s*때|2일차|둘째\s*날|귀가/
+  // 날짜 표시가 없는 휴식 문장은 출발 구간에만 귀속 (복귀 재사용 금지)
+  const outboundNotes = restSentences
+    .filter(s => OUTBOUND_WORD.test(s) || !RETURN_WORD.test(s)).join(' ')
+  const returnNotes = restSentences
+    .filter(s => RETURN_WORD.test(s)).join(' ')
+
   // ── 단일 이동구간 판정 헬퍼 ───────────────────────────────
   // breakMin: 구조화된 휴식(분) / dayItems: 해당 날 일정 / dayNotes: 해당 날만의 메모
   // dayNotes에는 program_notes 전체가 아닌, 해당 이동구간과 연결된 정보만 전달
-  function judgeSegment(breakMin, dayItems) {
+  function judgeSegment(breakMin, dayItems, dayNotes) {
     // ① 구조화된 break.duration_min 최우선 (이동 구조에 명시된 휴식)
     if (breakMin != null) {
       const min = Number(breakMin)
@@ -109,7 +132,10 @@ function evaluateC2(plan) {
       // 반드시 휴식/정차/휴게소 키워드 포함
       if (!/휴식|정차|휴게소/.test(act)) return false
       // 조건 A: 이동과 직접 연결된 표현
-      const isTravelLinked = /이동\s*중\s*휴식|차량\s*이동\s*중|휴게소\s*정차|이동\s*중\s*정차|휴게소/.test(act)
+      // '이동'이라는 단어가 휴식과 같은 문장에 있으면 이동 맥락으로 인정
+      // 예: '이동 중 휴식', '100분 이동 후 5분 휴식', '휴게소 정차'
+      // 단, '도착 후 휴식', '워크숍 중 휴식'은 '이동'이 없으므로 제외됨
+      const isTravelLinked = /이동[^.。\n]{0,12}(휴식|정차)|(휴식|정차)[^.。\n]{0,12}이동|휴게소|차량\s*이동/.test(act)
       if (isTravelLinked) return true
       // 조건 B: 출발-도착 시간 사이에 위치
       if (departTime && arriveTime && e.time) {
@@ -119,9 +145,12 @@ function evaluateC2(plan) {
       return false
     })
 
-    if (travelRestItems.length === 0) return null  // 이동 중 휴식 없음
+    // 해당 구간의 notes에서도 이동 휴식 표현 확인 (구간 귀속이 명확한 문장만 전달됨)
+    const noteRest = (dayNotes || '').trim()
 
-    const restText = travelRestItems.map(e => e.activity).join(' ')
+    if (travelRestItems.length === 0 && !noteRest) return null  // 이동 중 휴식 없음
+
+    const restText = [...travelRestItems.map(e => e.activity), noteRest].join(' ').trim()
     const nums = extractRestMinutes(restText)
     if (nums) {
       const maxMin = Math.max(...nums)
@@ -167,7 +196,7 @@ function evaluateC2(plan) {
       : null  // 별도 복귀 그룹이 없으면 day2로 판정
 
     // 출발 판정
-    const outboundSeg = judgeSegment(outboundGroup.break?.duration_min, day1)
+    const outboundSeg = judgeSegment(outboundGroup.break?.duration_min, day1, outboundNotes)
     const outboundResult = outboundSeg || (() => {
       // judgeSegment가 null(휴식 정보 없음)이면 이동시간 기준으로 판정
       const depT = outboundGroup.depart_time || ''
@@ -185,7 +214,7 @@ function evaluateC2(plan) {
     // 복귀 판정 — day2에서만 정보 읽음 (day1/notes 재사용 금지)
     let returnResult = null
     if (returnGroup) {
-      const retSeg = judgeSegment(returnGroup.break?.duration_min, day2)
+      const retSeg = judgeSegment(returnGroup.break?.duration_min, day2, returnNotes)
       if (retSeg) {
         returnResult = retSeg
       } else {
@@ -206,7 +235,7 @@ function evaluateC2(plan) {
       // 복귀 그룹이 transport_groups에 없으면 day2 일정으로 판정
       const day2HasTravel = day2.some(e => /출발|이동/.test(e.activity || ''))
       if (day2HasTravel) {
-        const retSeg = judgeSegment(null, day2)
+        const retSeg = judgeSegment(null, day2, returnNotes)
         if (retSeg) {
           returnResult = retSeg
         } else {
@@ -247,9 +276,9 @@ function evaluateC2(plan) {
 
   // ④ 금요일(day1)과 토요일(day2)을 각각 독립 판정
   //    토요일 판정에 program_notes 사용 금지 — day2 일정에서만 읽음
-  const outSeg = judgeSegment(null, day1)
+  const outSeg = judgeSegment(null, day1, outboundNotes)
   const hasDay2Travel = day2.some(e => /출발|이동/.test(e.activity || ''))
-  const retSeg = hasDay2Travel ? judgeSegment(null, day2) : null
+  const retSeg = hasDay2Travel ? judgeSegment(null, day2, returnNotes) : null
 
   // 출발 결과 결정
   let outboundResult
@@ -287,6 +316,12 @@ function evaluateC2(plan) {
 
 // ── C3: 박준혁 물레 필수 참여 강제 없음 ────────────────────
 const POSITIVE_ADJUSTMENT = /관찰|방식\s*조정|별도\s*참여|선택\s*참여|제외\s*허용|참여\s*방식|손목\s*부담\s*없|비손목|비\s*부담|부담.{0,4}없는\s*방식|부담\s*없이/
+// 물레 작업 자체를 하지 않는다는 명확한 표현 (HARD 조건 '강제 참여 금지' 충족)
+// 예: '물레 작업 제외', '도자기 클래스 불참', '물레에서 빠짐', '물레를 하지 않음'
+const POTTERY_OPT_OUT = /(물레|도자기)[^.。\n]{0,15}(제외|불참|빠짐|빠지|안\s*함|하지\s*않|미참여|참여\s*안)/
+// 물레 대신 다른 역할을 맡는 표현
+// 예: '물레 대신 사진 촬영 담당', '물레 대신 유약 작업'
+const POTTERY_ALT_ROLE = /(물레|도자기)\s*대신[^.。\n]{0,25}(담당|맡|참여|작업|역할|보조|진행)/
 const NEGATION = /하지\s*않음|안\s*함|미조정|조정\s*없음|불가|못\s*함/
 const WHOLE_TEAM_SKIP = /전체\s*미사용|팀\s*전체.*포기|도자기.*미사용|물레.*미사용|포기.*도자기|포기.*물레|도자기\s*사용하지\s*않/
 const PENDING = /예정|논의|검토|추후\s*결정|추후\s*확인|미정|확인\s*필요|결정\s*예정/
@@ -356,6 +391,17 @@ function evaluateC3(plan) {
   const OPT_OUT_PLUS_ALT = /(물레|도자기).{0,20}(안\s*함|하지\s*않|불참|제외|불가|못\s*함).{0,30}(관찰|방식\s*조정|별도\s*참여)|(관찰|방식\s*조정|별도\s*참여).{0,30}(물레|도자기).{0,20}(안\s*함|하지\s*않|불참|제외|불가|못\s*함)/
   if (OPT_OUT_PLUS_ALT.test(combinedText)) {
     return { status: 'PASS', reason: '물레 미참여 + 관찰/대안 참여 조합 반영됨' }
+  }
+
+  // 물레 대신 다른 역할 명시 → 방식 조정으로 인정 (NEGATION보다 먼저 확인)
+  if (POTTERY_ALT_ROLE.test(combinedText)) {
+    return { status: 'PASS', reason: '물레 대신 다른 역할 배정 — 참여 방식 조정 반영됨' }
+  }
+
+  // 물레 작업 미참여 명확 → HARD 조건(강제 참여 금지) 충족
+  // 단, '전원 필수'가 함께 있으면 FAIL 우선
+  if (POTTERY_OPT_OUT.test(combinedText) && !(combinedText.includes('전원') && combinedText.includes('필수'))) {
+    return { status: 'PASS', reason: '물레 작업 미참여 명시 — 강제 참여 없음' }
   }
 
   // 부정문 → UNKNOWN (단, 전원 필수는 FAIL)
